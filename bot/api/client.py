@@ -72,6 +72,12 @@ class BackendClient:
         )
         return result
 
+    async def get_user_stats(
+        self, user_id: int
+    ) -> dict[str, Any]:
+        logger.info("backend_get_user_stats", user_id=user_id)
+        return await self.get(f"/api/v1/users/{user_id}/stats")
+
     async def close(self) -> None:
         await self._client.aclose()
 

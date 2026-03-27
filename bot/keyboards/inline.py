@@ -18,5 +18,6 @@ def help_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="🔍 Поиск", switch_inline_query_current_chat="")
     builder.button(text="🎵 Плеер", callback_data="open_player")
-    builder.adjust(2)
+    builder.button(text="📊 Моя статистика", callback_data="my_stats")
+    builder.adjust(2, 1)
     return builder.as_markup()

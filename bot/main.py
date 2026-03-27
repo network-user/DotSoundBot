@@ -5,7 +5,7 @@ from aiogram.enums import ParseMode
 
 from bot.config import settings
 from bot.core.logging import configure_logging
-from bot.handlers import audio, base, inline_mode, likes
+from bot.handlers import audio, base, inline_mode, likes, stats
 from bot.middlewares.logging import LoggingMiddleware
 from bot.middlewares.throttling import ThrottlingMiddleware
 
@@ -30,6 +30,7 @@ async def main() -> None:
 
     dp.include_router(likes.router)
     dp.include_router(audio.router)
+    dp.include_router(stats.router)
     dp.include_router(base.router)
     dp.include_router(inline_mode.router)
 
