@@ -9,6 +9,7 @@ class BotSettings(BaseSettings):
 
     bot_token: str
     backend_base_url: str
+    mini_app_url: str
     log_level: str = "INFO"
 
 
