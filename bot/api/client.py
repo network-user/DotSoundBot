@@ -1,8 +1,11 @@
 from typing import Any
 
 import httpx
+import structlog
 
 from bot.config import settings
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 class BackendError(Exception):
@@ -16,26 +19,58 @@ class BackendClient:
     def __init__(self) -> None:
         self._client = httpx.AsyncClient(
             base_url=settings.backend_base_url,
-            timeout=10.0,
+            timeout=30.0,
         )
 
-    async def get(
-        self,
-        path: str,
-        **kwargs: Any,
-    ) -> Any:
+    async def get(self, path: str, **kwargs: Any) -> Any:
+        logger.debug("backend_get", path=path)
         response = await self._client.get(path, **kwargs)
         self._raise_for_status(response)
         return response.json()
 
-    async def post(
-        self,
-        path: str,
-        **kwargs: Any,
-    ) -> Any:
+    async def post(self, path: str, **kwargs: Any) -> Any:
+        logger.debug("backend_post", path=path)
         response = await self._client.post(path, **kwargs)
         self._raise_for_status(response)
         return response.json()
+
+    async def upload_audio(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        content_type: str,
+        title: str,
+        artist: str | None = None,
+        uploader_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Upload audio file as multipart/form-data."""
+        logger.info(
+            "backend_upload_audio",
+            filename=filename,
+            size_bytes=len(file_bytes),
+            title=title,
+        )
+        files = {
+            "file": (filename, file_bytes, content_type),
+        }
+        data: dict[str, Any] = {"title": title}
+        if artist:
+            data["artist"] = artist
+        if uploader_id is not None:
+            data["uploader_id"] = str(uploader_id)
+
+        response = await self._client.post(
+            "/api/v1/tracks/upload",
+            files=files,
+            data=data,
+        )
+        self._raise_for_status(response)
+        result: dict[str, Any] = response.json()
+        logger.info(
+            "backend_upload_complete",
+            track_id=result.get("id"),
+        )
+        return result
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -48,5 +83,9 @@ class BackendClient:
 
     def _raise_for_status(self, response: httpx.Response) -> None:
         if response.is_error:
-            detail = response.text
-            raise BackendError(response.status_code, detail)
+            logger.warning(
+                "backend_error_response",
+                status_code=response.status_code,
+                path=str(response.url),
+            )
+            raise BackendError(response.status_code, response.text)

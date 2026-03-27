@@ -5,7 +5,7 @@ from aiogram.enums import ParseMode
 
 from bot.config import settings
 from bot.core.logging import configure_logging
-from bot.handlers import base, inline_mode
+from bot.handlers import audio, base, inline_mode
 from bot.middlewares.logging import LoggingMiddleware
 from bot.middlewares.throttling import ThrottlingMiddleware
 
@@ -28,6 +28,7 @@ async def main() -> None:
     dp.update.outer_middleware(LoggingMiddleware())
     dp.message.middleware(ThrottlingMiddleware(rate_limit=0.7))
 
+    dp.include_router(audio.router)
     dp.include_router(base.router)
     dp.include_router(inline_mode.router)
 
