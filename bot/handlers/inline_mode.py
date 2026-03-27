@@ -1,15 +1,32 @@
 import structlog
 from aiogram import Router
 from aiogram.types import (
+    InlineKeyboardMarkup,
     InlineQuery,
     InlineQueryResultArticle,
     InputTextMessageContent,
 )
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.api.client import BackendClient, BackendError
+from bot.config import settings
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
+def _track_keyboard(track_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="❤️ Лайк", callback_data=f"like:{track_id}")
+    builder.button(
+        text="▶️ Слушать",
+        url=(
+            f"{settings.backend_base_url}/mini_app/"
+            f"?track_id={track_id}"
+        ),
+    )
+    builder.adjust(2)
+    return builder.as_markup()
 
 
 @router.inline_query()
@@ -43,23 +60,31 @@ async def inline_search(query: InlineQuery) -> None:
             )
             tracks = data.get("items", [])
             logger.info(
-                "inline_tracks_fetched",
-                count=len(tracks),
+                "inline_tracks_fetched", count=len(tracks)
             )
             for track in tracks:
-                artist = track.get("artist") or "Неизвестный исполнитель"
+                tid = track["id"]
+                artist = (
+                    track.get("artist")
+                    or "Неизвестный исполнитель"
+                )
                 title = track.get("title", "Без названия")
+                play_count = track.get("play_count", 0)
                 results.append(
                     InlineQueryResultArticle(
-                        id=str(track["id"]),
+                        id=str(tid),
                         title=title,
-                        description=artist,
+                        description=(
+                            f"{artist} · {play_count} прослушиваний"
+                        ),
                         input_message_content=InputTextMessageContent(
                             message_text=(
-                                f"🎵 <b>{title}</b>\n👤 {artist}"
+                                f"🎵 <b>{title}</b>\n"
+                                f"👤 {artist}"
                             ),
                             parse_mode="HTML",
                         ),
+                        reply_markup=_track_keyboard(tid),
                     )
                 )
         except BackendError as exc:
