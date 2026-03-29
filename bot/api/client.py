@@ -78,6 +78,47 @@ class BackendClient:
         logger.info("backend_get_user_stats", user_id=user_id)
         return await self.get(f"/api/v1/users/{user_id}/stats")
 
+    async def get_user_profile(
+        self, telegram_id: int
+    ) -> dict[str, Any]:
+        logger.info(
+            "backend_get_user_profile", telegram_id=telegram_id
+        )
+        return await self.get(f"/api/v1/users/{telegram_id}")
+
+    async def get_user_playlists(
+        self, owner_id: int
+    ) -> list[dict[str, Any]]:
+        logger.info(
+            "backend_get_user_playlists", owner_id=owner_id
+        )
+        result = await self.get(
+            "/api/v1/playlists",
+            params={"owner_id": owner_id},
+        )
+        return result if isinstance(result, list) else []
+
+    async def create_playlist(
+        self, owner_id: int, name: str, is_public: bool = False
+    ) -> dict[str, Any]:
+        logger.info(
+            "backend_create_playlist",
+            owner_id=owner_id,
+            name=name,
+        )
+        response = await self._client.post(
+            "/api/v1/playlists",
+            params={"owner_id": owner_id},
+            json={"name": name, "is_public": is_public},
+        )
+        self._raise_for_status(response)
+        result: dict[str, Any] = response.json()
+        logger.info(
+            "backend_playlist_created",
+            playlist_id=result.get("id"),
+        )
+        return result
+
     async def close(self) -> None:
         await self._client.aclose()
 

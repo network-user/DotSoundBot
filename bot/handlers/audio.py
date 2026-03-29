@@ -1,6 +1,6 @@
 import structlog
 from aiogram import Bot, F, Router
-from aiogram.types import Message
+from aiogram.types import Document, Message
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
@@ -22,8 +22,7 @@ _AUDIO_MIMES = frozenset(
 )
 
 
-def _is_audio_document(message: Message) -> bool:
-    doc = message.document
+def _is_audio_document(doc: Document) -> bool:
     if not doc:
         return False
     mime = doc.mime_type or ""
