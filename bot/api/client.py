@@ -72,11 +72,23 @@ class BackendClient:
         )
         return result
 
-    async def get_user_stats(
-        self, user_id: int
+    async def toggle_like(
+        self, user_id: int, track_id: int
     ) -> dict[str, Any]:
-        logger.info("backend_get_user_stats", user_id=user_id)
-        return await self.get(f"/api/v1/users/{user_id}/stats")
+        logger.info(
+            "backend_toggle_like", user_id=user_id, track_id=track_id
+        )
+        return await self.post(f"/api/v1/likes/{user_id}/{track_id}")
+
+    async def toggle_dislike(
+        self, user_id: int, track_id: int
+    ) -> dict[str, Any]:
+        logger.info(
+            "backend_toggle_dislike", user_id=user_id, track_id=track_id
+        )
+        return await self.post(
+            f"/api/v1/dislikes/{user_id}/{track_id}"
+        )
 
     async def get_user_profile(
         self, telegram_id: int

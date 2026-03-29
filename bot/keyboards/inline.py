@@ -16,6 +16,24 @@ def open_player_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def track_action_keyboard(
+    track_id: int, mini_app_url: str
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="❤️", callback_data=f"like_{track_id}"
+    )
+    builder.button(
+        text="💔", callback_data=f"dislike_{track_id}"
+    )
+    builder.button(
+        text="🎵 Слушать",
+        web_app=WebAppInfo(url=mini_app_url),
+    )
+    builder.adjust(2, 1)
+    return builder.as_markup()
+
+
 def main_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(

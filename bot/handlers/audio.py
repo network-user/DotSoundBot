@@ -4,7 +4,7 @@ from aiogram.types import Document, Message
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
-from bot.keyboards.inline import open_player_keyboard
+from bot.keyboards.inline import track_action_keyboard
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -90,7 +90,7 @@ async def handle_audio(message: Message, bot: Bot) -> None:
                 f"🎵 <b>{title}</b>"
                 + (f"\n👤 {artist}" if artist else ""),
                 parse_mode="HTML",
-                reply_markup=open_player_keyboard(mini_app_url),
+                reply_markup=track_action_keyboard(track_id, mini_app_url),
             )
         except BackendError as exc:
             logger.error(
@@ -153,7 +153,7 @@ async def handle_audio_document(
             await message.reply(
                 f"✅ Трек загружен!\n🎵 <b>{title}</b>",
                 parse_mode="HTML",
-                reply_markup=open_player_keyboard(mini_app_url),
+                reply_markup=track_action_keyboard(track_id, mini_app_url),
             )
         except BackendError as exc:
             logger.error(
