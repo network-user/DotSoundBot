@@ -16,7 +16,7 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 async def main() -> None:
     configure_logging(settings.log_level)
     logger.info(
-        "dotsound_bot_starting",
+        "sound_bot_starting",
         log_level=settings.log_level,
     )
 
@@ -38,7 +38,7 @@ async def main() -> None:
 
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
-            text="DotSound 🎵",
+            text=".Sound 🎵",
             web_app=WebAppInfo(url=settings.mini_app_url),
         )
     )
