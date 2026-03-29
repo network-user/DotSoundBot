@@ -48,7 +48,7 @@ async def cmd_start(message: Message) -> None:
 
     await message.answer(
         f"Привет, <b>{user.first_name}</b>! 👋\n\n"
-        "Добро пожаловать в <b>.Sound</b> — музыка без рекламы.\n"
+        "Добро пожаловать в <b>.sound</b> — музыка без рекламы.\n"
         "Слушай. Делись. Открывай.\n\n"
         "Загружай треки прямо в чат или открывай плеер:",
         reply_markup=main_keyboard(),
@@ -60,7 +60,7 @@ async def cmd_help(message: Message) -> None:
     structlog.contextvars.bind_contextvars(handler="cmd_help")
     logger.info("cmd_help_called")
     await message.answer(
-        "Что умеет .Sound:\n\n"
+        "Что умеет .sound:\n\n"
         "🎵 <b>Плеер</b> — слушай прямо в Telegram\n"
         "🔍 <b>Поиск</b> — введи название или исполнителя\n"
         "▤ <b>Плейлисты</b> — создавай свои подборки\n"

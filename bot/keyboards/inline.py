@@ -10,7 +10,7 @@ from bot.config import settings
 def open_player_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🎵 Открыть .Sound",
+        text="🎵 Открыть .sound",
         web_app=WebAppInfo(url=mini_app_url),
     )
     return builder.as_markup()
