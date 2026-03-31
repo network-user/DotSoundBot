@@ -27,8 +27,16 @@ async def cmd_start(message: Message) -> None:
     )
     logger.info("cmd_start_called")
 
-    async with BackendClient() as client:
-        try:
+    await message.answer(
+        f"Привет, <b>{user.first_name}</b>! 👋\n\n"
+        "Добро пожаловать в <b>.sound</b> — музыка без рекламы.\n"
+        "Слушай. Делись. Открывай.\n\n"
+        "Загружай треки прямо в чат или открывай плеер:",
+        reply_markup=main_keyboard(),
+    )
+
+    try:
+        async with BackendClient() as client:
             await client.post(
                 "/api/v1/users",
                 json={
@@ -39,20 +47,11 @@ async def cmd_start(message: Message) -> None:
                 },
             )
             logger.info("user_registered_in_backend")
-        except BackendError as exc:
-            logger.error(
-                "backend_registration_failed",
-                status=exc.status_code,
-                detail=exc.detail,
-            )
-
-    await message.answer(
-        f"Привет, <b>{user.first_name}</b>! 👋\n\n"
-        "Добро пожаловать в <b>.sound</b> — музыка без рекламы.\n"
-        "Слушай. Делись. Открывай.\n\n"
-        "Загружай треки прямо в чат или открывай плеер:",
-        reply_markup=main_keyboard(),
-    )
+    except Exception as exc:
+        logger.error(
+            "backend_registration_failed",
+            error=str(exc),
+        )
 
 
 @router.message(F.text == "/help")

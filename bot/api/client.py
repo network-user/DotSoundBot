@@ -19,19 +19,17 @@ class BackendClient:
     def __init__(self) -> None:
         self._client = httpx.AsyncClient(
             base_url=settings.backend_base_url,
-            timeout=30.0,
+            timeout=5.0,
         )
 
     async def get(self, path: str, **kwargs: Any) -> Any:
         logger.debug("backend_get", path=path)
-        response = await self._client.get(path, **kwargs)
-        self._raise_for_status(response)
+        response = await self._request("GET", path, **kwargs)
         return response.json()
 
     async def post(self, path: str, **kwargs: Any) -> Any:
         logger.debug("backend_post", path=path)
-        response = await self._client.post(path, **kwargs)
-        self._raise_for_status(response)
+        response = await self._request("POST", path, **kwargs)
         return response.json()
 
     async def upload_audio(
@@ -59,12 +57,13 @@ class BackendClient:
         if uploader_id is not None:
             data["uploader_id"] = str(uploader_id)
 
-        response = await self._client.post(
+        response = await self._request(
+            "POST",
             "/api/v1/tracks/upload",
             files=files,
             data=data,
+            timeout=60.0,
         )
-        self._raise_for_status(response)
         result: dict[str, Any] = response.json()
         logger.info(
             "backend_upload_complete",
@@ -118,12 +117,12 @@ class BackendClient:
             owner_id=owner_id,
             name=name,
         )
-        response = await self._client.post(
+        response = await self._request(
+            "POST",
             "/api/v1/playlists",
             params={"owner_id": owner_id},
             json={"name": name, "is_public": is_public},
         )
-        self._raise_for_status(response)
         result: dict[str, Any] = response.json()
         logger.info(
             "backend_playlist_created",
@@ -139,6 +138,30 @@ class BackendClient:
 
     async def __aexit__(self, *_: object) -> None:
         await self.close()
+
+    async def _request(
+        self, method: str, path: str, **kwargs: Any
+    ) -> httpx.Response:
+        try:
+            response = await self._client.request(method, path, **kwargs)
+            self._raise_for_status(response)
+            return response
+        except httpx.TimeoutException:
+            logger.error("backend_timeout", method=method, path=path)
+            raise BackendError(504, "Backend read/connect timeout")
+        except httpx.NetworkError:
+            logger.error(
+                "backend_network_error", method=method, path=path
+            )
+            raise BackendError(502, "Backend connection error")
+        except httpx.HTTPError as exc:
+            logger.error(
+                "backend_http_error",
+                method=method,
+                path=path,
+                exc=str(exc),
+            )
+            raise BackendError(500, f"Backend HTTP error: {str(exc)}")
 
     def _raise_for_status(self, response: httpx.Response) -> None:
         if response.is_error:
