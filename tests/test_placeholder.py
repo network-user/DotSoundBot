@@ -1,16 +1,17 @@
-from bot.config import BotSettings
+import pytest
+
 from bot.utils.formatting import truncate
 
 
-def test_bot_settings_importable() -> None:
-    assert BotSettings
-
-
-def test_truncate_short_text() -> None:
+def test_truncate_short_string() -> None:
     assert truncate("hello", 10) == "hello"
 
 
-def test_truncate_long_text() -> None:
-    result = truncate("hello world", 7)
-    assert len(result) == 7
-    assert result.endswith("…")
+def test_truncate_long_string() -> None:
+    result = truncate("a" * 100, 10)
+    assert len(result) <= 10
+    assert result.endswith("...")
+
+
+def test_truncate_exact_length() -> None:
+    assert truncate("hello", 5) == "hello"

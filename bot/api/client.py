@@ -41,7 +41,6 @@ class BackendClient:
         artist: str | None = None,
         uploader_id: int | None = None,
     ) -> dict[str, Any]:
-        """Upload audio file as multipart/form-data."""
         logger.info(
             "backend_upload_audio",
             filename=filename,
@@ -75,15 +74,21 @@ class BackendClient:
         self, user_id: int, track_id: int
     ) -> dict[str, Any]:
         logger.info(
-            "backend_toggle_like", user_id=user_id, track_id=track_id
+            "backend_toggle_like",
+            user_id=user_id,
+            track_id=track_id,
         )
-        return await self.post(f"/api/v1/likes/{user_id}/{track_id}")
+        return await self.post(
+            f"/api/v1/likes/{user_id}/{track_id}"
+        )
 
     async def toggle_dislike(
         self, user_id: int, track_id: int
     ) -> dict[str, Any]:
         logger.info(
-            "backend_toggle_dislike", user_id=user_id, track_id=track_id
+            "backend_toggle_dislike",
+            user_id=user_id,
+            track_id=track_id,
         )
         return await self.post(
             f"/api/v1/dislikes/{user_id}/{track_id}"
@@ -93,9 +98,20 @@ class BackendClient:
         self, telegram_id: int
     ) -> dict[str, Any]:
         logger.info(
-            "backend_get_user_profile", telegram_id=telegram_id
+            "backend_get_user_profile",
+            telegram_id=telegram_id,
         )
         return await self.get(f"/api/v1/users/{telegram_id}")
+
+    async def get_user_stats(
+        self, user_id: int
+    ) -> dict[str, Any]:
+        logger.info(
+            "backend_get_user_stats", user_id=user_id
+        )
+        return await self.get(
+            f"/api/v1/users/{user_id}/stats"
+        )
 
     async def get_user_playlists(
         self, owner_id: int
@@ -110,7 +126,10 @@ class BackendClient:
         return result if isinstance(result, list) else []
 
     async def create_playlist(
-        self, owner_id: int, name: str, is_public: bool = False
+        self,
+        owner_id: int,
+        name: str,
+        is_public: bool = False,
     ) -> dict[str, Any]:
         logger.info(
             "backend_create_playlist",
@@ -143,17 +162,27 @@ class BackendClient:
         self, method: str, path: str, **kwargs: Any
     ) -> httpx.Response:
         try:
-            response = await self._client.request(method, path, **kwargs)
+            response = await self._client.request(
+                method, path, **kwargs
+            )
             self._raise_for_status(response)
             return response
         except httpx.TimeoutException:
-            logger.error("backend_timeout", method=method, path=path)
-            raise BackendError(504, "Backend read/connect timeout")
+            logger.error(
+                "backend_timeout", method=method, path=path
+            )
+            raise BackendError(
+                504, "Backend read/connect timeout"
+            )
         except httpx.NetworkError:
             logger.error(
-                "backend_network_error", method=method, path=path
+                "backend_network_error",
+                method=method,
+                path=path,
             )
-            raise BackendError(502, "Backend connection error")
+            raise BackendError(
+                502, "Backend connection error"
+            )
         except httpx.HTTPError as exc:
             logger.error(
                 "backend_http_error",
@@ -161,13 +190,19 @@ class BackendClient:
                 path=path,
                 exc=str(exc),
             )
-            raise BackendError(500, f"Backend HTTP error: {str(exc)}")
+            raise BackendError(
+                500, f"Backend HTTP error: {str(exc)}"
+            )
 
-    def _raise_for_status(self, response: httpx.Response) -> None:
+    def _raise_for_status(
+        self, response: httpx.Response
+    ) -> None:
         if response.is_error:
             logger.warning(
                 "backend_error_response",
                 status_code=response.status_code,
                 path=str(response.url),
             )
-            raise BackendError(response.status_code, response.text)
+            raise BackendError(
+                response.status_code, response.text
+            )

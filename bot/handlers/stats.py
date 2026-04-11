@@ -8,7 +8,9 @@ from bot.config import settings
 from bot.keyboards.inline import open_player_keyboard
 
 router = Router()
-logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(
+    __name__
+)
 
 
 async def _send_stats(
@@ -33,7 +35,9 @@ async def _send_stats(
                 },
             )
             internal_id: int = user_data["id"]
-            stats = await client.get_user_stats(internal_id)
+            stats = await client.get_user_stats(
+                internal_id
+            )
         except BackendError as exc:
             logger.error(
                 "stats_backend_error",
@@ -41,13 +45,16 @@ async def _send_stats(
                 detail=exc.detail,
             )
             await target.answer(
-                "Не удалось получить статистику. Попробуй позже."
+                "Не удалось получить статистику. "
+                "Попробуй позже."
             )
             return
 
     total_tracks: int = stats["total_tracks"]
     total_plays: int = stats["total_plays"]
-    top_tracks: list[dict] = stats.get("top_tracks", [])
+    top_tracks: list[dict] = stats.get(
+        "top_tracks", []
+    )
 
     logger.info(
         "stats_fetched",
@@ -57,15 +64,21 @@ async def _send_stats(
     )
 
     lines = [
-        f"📊 <b>Твоя статистика, {user.first_name}</b>\n",
-        f"🎵 Загружено треков: <b>{total_tracks}</b>",
-        f"▶️ Всего прослушиваний: <b>{total_plays}</b>",
+        f"📊 <b>Твоя статистика, "
+        f"{user.first_name}</b>\n",
+        f"🎵 Загружено треков: "
+        f"<b>{total_tracks}</b>",
+        f"▶️ Всего прослушиваний: "
+        f"<b>{total_plays}</b>",
     ]
 
     if top_tracks:
         lines.append("\n🏆 <b>Топ треков:</b>")
         for i, track in enumerate(top_tracks, 1):
-            artist = track.get("artist") or "Неизвестный исполнитель"
+            artist = (
+                track.get("artist")
+                or "Неизвестный исполнитель"
+            )
             play_count = track.get("play_count", 0)
             title = track.get("title", "—")
             lines.append(
@@ -73,7 +86,9 @@ async def _send_stats(
                 f"<i>({play_count} прослушиваний)</i>"
             )
 
-    mini_app_url = f"{settings.backend_base_url}/mini_app/"
+    mini_app_url = (
+        f"{settings.backend_base_url}/mini_app/"
+    )
     await target.answer(
         "\n".join(lines),
         parse_mode="HTML",
@@ -89,7 +104,9 @@ async def cmd_mystats(message: Message) -> None:
 
 
 @router.callback_query(F.data == "my_stats")
-async def on_my_stats(callback: CallbackQuery) -> None:
+async def on_my_stats(
+    callback: CallbackQuery,
+) -> None:
     if not callback.from_user or not callback.message:
         await callback.answer()
         return
@@ -100,4 +117,6 @@ async def on_my_stats(callback: CallbackQuery) -> None:
     logger.info("my_stats_callback")
     await callback.answer()
     if isinstance(callback.message, Message):
-        await _send_stats(callback.from_user, callback.message)
+        await _send_stats(
+            callback.from_user, callback.message
+        )

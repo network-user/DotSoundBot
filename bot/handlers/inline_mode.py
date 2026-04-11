@@ -17,7 +17,14 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 def _track_keyboard(track_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="❤️ Лайк", callback_data=f"like:{track_id}")
+    builder.button(
+        text="❤️ Лайк",
+        callback_data=f"like_{track_id}",
+    )
+    builder.button(
+        text="💔 Дизлайк",
+        callback_data=f"dislike_{track_id}",
+    )
     builder.button(
         text="▶️ Слушать",
         url=(
@@ -25,14 +32,16 @@ def _track_keyboard(track_id: int) -> InlineKeyboardMarkup:
             f"?track_id={track_id}"
         ),
     )
-    builder.adjust(2)
+    builder.adjust(2, 1)
     return builder.as_markup()
 
 
 @router.inline_query()
 async def inline_search(query: InlineQuery) -> None:
     search_text = query.query.strip()
-    user_id = query.from_user.id if query.from_user else None
+    user_id = (
+        query.from_user.id if query.from_user else None
+    )
 
     structlog.contextvars.bind_contextvars(
         handler="inline_search",
@@ -45,7 +54,9 @@ async def inline_search(query: InlineQuery) -> None:
         await query.answer(
             results=[],
             cache_time=1,
-            switch_pm_text="Введите название трека или исполнителя",
+            switch_pm_text=(
+                "Введите название трека или исполнителя"
+            ),
             switch_pm_parameter="search",
         )
         return
@@ -75,14 +86,17 @@ async def inline_search(query: InlineQuery) -> None:
                         id=str(tid),
                         title=title,
                         description=(
-                            f"{artist} · {play_count} прослушиваний"
+                            f"{artist} · "
+                            f"{play_count} прослушиваний"
                         ),
-                        input_message_content=InputTextMessageContent(
-                            message_text=(
-                                f"🎵 <b>{title}</b>\n"
-                                f"👤 {artist}"
-                            ),
-                            parse_mode="HTML",
+                        input_message_content=(
+                            InputTextMessageContent(
+                                message_text=(
+                                    f"🎵 <b>{title}</b>\n"
+                                    f"👤 {artist}"
+                                ),
+                                parse_mode="HTML",
+                            )
                         ),
                         reply_markup=_track_keyboard(tid),
                     )
