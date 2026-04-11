@@ -11,6 +11,10 @@ class BotSettings(BaseSettings):
     backend_base_url: str
     mini_app_url: str
     log_level: str = "INFO"
+    debug: bool = False
+    redact_logs: bool = True
+    internal_api_port: int = 8081
+    internal_api_secret: str = ""
 
 
 settings = BotSettings()

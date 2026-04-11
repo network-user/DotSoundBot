@@ -1,9 +1,13 @@
+import asyncio
+
 import structlog
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import MenuButtonWebApp, WebAppInfo
 
+from bot.api.internal import create_internal_app
 from bot.config import settings
 from bot.core.logging import configure_logging
 from bot.handlers import (
@@ -23,7 +27,10 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(
 
 
 async def main() -> None:
-    configure_logging(settings.log_level)
+    configure_logging(
+        settings.log_level,
+        redact=settings.redact_logs,
+    )
     logger.info(
         "sound_bot_starting",
         log_level=settings.log_level,
@@ -62,6 +69,20 @@ async def main() -> None:
         mini_app_url=settings.mini_app_url,
     )
 
+    internal_app = create_internal_app(bot)
+    runner = web.AppRunner(internal_app)
+    await runner.setup()
+    site = web.TCPSite(
+        runner,
+        "0.0.0.0",
+        settings.internal_api_port,
+    )
+    await site.start()
+    logger.info(
+        "internal_api_started",
+        port=settings.internal_api_port,
+    )
+
     logger.info("bot_polling_started")
     try:
         await dp.start_polling(
@@ -72,4 +93,5 @@ async def main() -> None:
         )
     finally:
         logger.info("bot_polling_stopped")
+        await runner.cleanup()
         await bot.session.close()
