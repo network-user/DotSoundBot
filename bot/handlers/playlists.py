@@ -5,7 +5,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from bot.api.client import BackendClient, BackendError
-from bot.keyboards.inline import main_keyboard, playlists_keyboard
+from bot.keyboards.inline import main_menu_kb, playlists_keyboard
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -70,7 +70,7 @@ async def on_playlist_name_received(
             await message.answer(
                 f"✅ Плейлист <b>{name}</b> создан!\n\n"
                 "Открой плеер, чтобы добавить треки.",
-                reply_markup=main_keyboard(),
+                reply_markup=main_menu_kb(),
             )
         except BackendError as exc:
             logger.error(
