@@ -76,15 +76,18 @@ async def cmd_start_web_login(
         )
         return
 
+    site_url = settings.mini_app_url.rstrip("/")
+    auth_url = f"{site_url}?auth=code"
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="🌐 Ввести код на сайте",
+                url=auth_url,
+            )
+        ],
+    ]
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="👤 Вернуться в профиль",
-                    callback_data="profile",
-                )
-            ]
-        ]
+        inline_keyboard=buttons
     )
 
     await message.answer(

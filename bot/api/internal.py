@@ -216,6 +216,22 @@ async def handle_send_login_notification(
 
     bot: Bot = request.app["bot"]
 
+    from aiogram.types import (
+        InlineKeyboardButton,
+        InlineKeyboardMarkup,
+    )
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🏠 Главное меню",
+                    callback_data="open_player",
+                )
+            ]
+        ]
+    )
+
     try:
         await bot.send_message(
             chat_id=telegram_id,
@@ -231,6 +247,7 @@ async def handle_send_login_notification(
                 "</i>"
             ),
             parse_mode="HTML",
+            reply_markup=keyboard,
         )
         logger.info(
             "login_notification_sent",

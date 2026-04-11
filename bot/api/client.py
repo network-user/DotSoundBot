@@ -113,6 +113,20 @@ class BackendClient:
             f"/api/v1/users/{user_id}/stats"
         )
 
+    async def get_login_history(
+        self, user_id: int
+    ) -> list[dict[str, Any]]:
+        logger.info(
+            "backend_get_login_history",
+            user_id=user_id,
+        )
+        result = await self.get(
+            f"/api/v1/users/{user_id}/login-history"
+        )
+        return (
+            result if isinstance(result, list) else []
+        )
+
     async def get_user_playlists(
         self, owner_id: int
     ) -> list[dict[str, Any]]:
