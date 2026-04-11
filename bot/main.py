@@ -17,6 +17,7 @@ from bot.handlers import (
     likes,
     playlists,
     stats,
+    web_auth,
 )
 from bot.middlewares.logging import LoggingMiddleware
 from bot.middlewares.throttling import ThrottlingMiddleware
@@ -49,6 +50,7 @@ async def main() -> None:
         ThrottlingMiddleware(rate_limit=0.7)
     )
 
+    dp.include_router(web_auth.router)
     dp.include_router(likes.router)
     dp.include_router(audio.router)
     dp.include_router(stats.router)
