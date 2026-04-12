@@ -2,28 +2,36 @@
 
 Telegram-бот музыкальной платформы DotSound — загрузка треков, поиск через inline-режим, лайки, открытие Mini App.
 
+> Этот репозиторий опубликован как engineering showcase.
+> Критичная закрытая логика переносится в приватный репозиторий
+> `DotSoundPrivateCore`.
+
 ---
 
 ## Стек
 
-| Компонент | Технология |
-|-----------|-----------|
-| Бот | aiogram 3.x (полностью async) |
-| HTTP-клиент | httpx (async) |
-| Конфиг | pydantic-settings |
-| Логирование | structlog |
-| Зависимости | Poetry |
+
+| Компонент   | Технология                    |
+| ----------- | ----------------------------- |
+| Бот         | aiogram 3.x (полностью async) |
+| HTTP-клиент | httpx (async)                 |
+| Конфиг      | pydantic-settings             |
+| Логирование | structlog                     |
+| Зависимости | Poetry                        |
+
 
 ---
 
 ## Требования
 
-| Инструмент | Версия | Зачем |
-|-----------|--------|-------|
-| Python | 3.11+ | Запуск бота |
-| [Poetry](https://python-poetry.org/) | любая | Управление зависимостями |
-| Telegram Bot Token | — | Получить у [@BotFather](https://t.me/BotFather) |
-| DotSoundBackend | запущен | Бот — тонкий клиент, вся логика на бэкенде |
+
+| Инструмент                           | Версия  | Зачем                                           |
+| ------------------------------------ | ------- | ----------------------------------------------- |
+| Python                               | 3.11+   | Запуск бота                                     |
+| [Poetry](https://python-poetry.org/) | любая   | Управление зависимостями                        |
+| Telegram Bot Token                   | —       | Получить у [@BotFather](https://t.me/BotFather) |
+| DotSoundBackend                      | запущен | Бот — тонкий клиент, вся логика на бэкенде      |
+
 
 > Бот не работает без запущенного DotSoundBackend. Сначала поднимите бэкенд — инструкция: [DotSoundBackend/README.md](../DotSoundBackend/README.md)
 
@@ -93,11 +101,13 @@ INFO  bot started polling
 
 Файл: `.env` (создаётся из `.env.example`)
 
-| Переменная | Описание | Обязательная | Значение по умолчанию |
-|-----------|---------|:---:|-----------------------|
-| `BOT_TOKEN` | Токен бота из @BotFather | ✅ | — |
-| `BACKEND_BASE_URL` | URL DotSoundBackend | — | `http://localhost:8000` |
-| `LOG_LEVEL` | Уровень логов (`DEBUG`/`INFO`/`WARNING`) | — | `INFO` |
+
+| Переменная         | Описание                                 | Обязательная | Значение по умолчанию   |
+| ------------------ | ---------------------------------------- | ------------ | ----------------------- |
+| `BOT_TOKEN`        | Токен бота из @BotFather                 | ✅            | —                       |
+| `BACKEND_BASE_URL` | URL DotSoundBackend                      | —            | `http://localhost:8000` |
+| `LOG_LEVEL`        | Уровень логов (`DEBUG`/`INFO`/`WARNING`) | —            | `INFO`                  |
+
 
 ---
 
@@ -105,11 +115,13 @@ INFO  bot started polling
 
 ### Команды
 
-| Команда | Описание |
-|---------|---------|
-| `/start` | Регистрация пользователя и приветственное сообщение |
-| `/help` | Список возможностей бота |
-| `/mystats` | Статистика: количество загруженных треков, лайков |
+
+| Команда    | Описание                                            |
+| ---------- | --------------------------------------------------- |
+| `/start`   | Регистрация пользователя и приветственное сообщение |
+| `/help`    | Список возможностей бота                            |
+| `/mystats` | Статистика: количество загруженных треков, лайков   |
+
 
 ### Inline-поиск
 
@@ -145,19 +157,24 @@ DotSoundBackend REST API
 
 Handlers не содержат бизнес-логики — только вызов `BackendClient` и формирование ответа пользователю.
 
+Приватное ядро (`DotSoundPrivateCore`) используется для internal bridge
+правил и чувствительных политик, которые не публикуются как open source.
+
 ### Компоненты
 
-| Файл / Директория | Описание |
-|-------------------|---------|
-| `bot/handlers/base.py` | `/start`, `/help`, кнопка открытия Mini App |
-| `bot/handlers/audio.py` | Загрузка аудиофайлов |
-| `bot/handlers/inline_mode.py` | Inline-поиск треков |
-| `bot/handlers/likes.py` | Callback-обработчик лайков |
-| `bot/handlers/stats.py` | `/mystats`, callback статистики |
-| `bot/api/client.py` | Все запросы к DotSoundBackend |
-| `bot/keyboards/inline.py` | Фабрики инлайн-клавиатур |
+
+| Файл / Директория               | Описание                                            |
+| ------------------------------- | --------------------------------------------------- |
+| `bot/handlers/base.py`          | `/start`, `/help`, кнопка открытия Mini App         |
+| `bot/handlers/audio.py`         | Загрузка аудиофайлов                                |
+| `bot/handlers/inline_mode.py`   | Inline-поиск треков                                 |
+| `bot/handlers/likes.py`         | Callback-обработчик лайков                          |
+| `bot/handlers/stats.py`         | `/mystats`, callback статистики                     |
+| `bot/api/client.py`             | Все запросы к DotSoundBackend                       |
+| `bot/keyboards/inline.py`       | Фабрики инлайн-клавиатур                            |
 | `bot/middlewares/throttling.py` | Ограничение частоты запросов (0.7 с / пользователь) |
-| `bot/middlewares/logging.py` | Логирование входящих событий |
+| `bot/middlewares/logging.py`    | Логирование входящих событий                        |
+
 
 ---
 
@@ -179,18 +196,35 @@ poetry run black bot/
 
 ---
 
+## License / Usage Restrictions
+
+Репозиторий **не является open source**.
+
+- Лицензия: `[LICENSE](./LICENSE)`
+- Ограничения использования: `[NOTICE](./NOTICE)`
+
+Разрешён просмотр и не-production оценка кода. Продакшн-использование,
+коммерческая эксплуатация, SaaS-хостинг, встраивание в другие продукты
+и перераспространение запрещены без письменного разрешения.
+
+---
+
 ## Частые проблемы
 
 **Бот не отвечает после `/start`**
+
 - Проверьте, что `BOT_TOKEN` корректный
 - Убедитесь, что DotSoundBackend запущен и доступен по `BACKEND_BASE_URL`
 
 **Ошибка `ConnectionRefusedError` при старте**
+
 - DotSoundBackend не запущен. Выполните `curl $BACKEND_BASE_URL/api/v1/health`
 
 **Inline-поиск не работает**
+
 - В @BotFather включите inline-режим: `/mybots` → ваш бот → `Bot Settings` → `Inline Mode` → `Turn on`
 
 ---
 
 > Связанный репозиторий: [DotSoundBackend](../DotSoundBackend)
+

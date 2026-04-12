@@ -2,8 +2,15 @@ import io
 from typing import Any
 
 import structlog
-from aiohttp import web
 from aiogram import Bot
+from aiohttp import web
+from dotsound_private_core.contracts import (
+    DOWNLOAD_AUDIO_ENDPOINT,
+    INTERNAL_SECRET_HEADER,
+    PROFILE_AUDIOS_ENDPOINT_TEMPLATE,
+    SEND_AUTH_CODE_ENDPOINT,
+    SEND_LOGIN_NOTIFICATION_ENDPOINT,
+)
 
 from bot.config import settings
 
@@ -19,7 +26,7 @@ def _check_secret(request: web.Request) -> bool:
     if not expected:
         return True
     token = request.headers.get(
-        "X-Internal-Secret", ""
+        INTERNAL_SECRET_HEADER, ""
     )
     ok = token == expected
     if not ok:
@@ -271,19 +278,19 @@ def create_internal_app(
     app = web.Application()
     app["bot"] = bot
     app.router.add_get(
-        "/internal/profile-audios/{user_id}",
+        PROFILE_AUDIOS_ENDPOINT_TEMPLATE,
         handle_profile_audios,
     )
     app.router.add_post(
-        "/internal/download-audio",
+        DOWNLOAD_AUDIO_ENDPOINT,
         handle_download_audio,
     )
     app.router.add_post(
-        "/internal/send-auth-code",
+        SEND_AUTH_CODE_ENDPOINT,
         handle_send_auth_code,
     )
     app.router.add_post(
-        "/internal/send-login-notification",
+        SEND_LOGIN_NOTIFICATION_ENDPOINT,
         handle_send_login_notification,
     )
     return app

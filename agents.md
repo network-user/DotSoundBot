@@ -5,6 +5,15 @@ DotSound — музыкальная платформа в Telegram (SoundCloud-s
 Этот репозиторий: Telegram-бот (aiogram 3.x) + Mini App (HTML/CSS/JS). Только визуальная часть.
 Вся бизнес-логика и данные — в репозитории `DotSoundBackend`.
 
+## Жёсткие границы public/private
+- Этот репозиторий — публичный thin client. Private bridge логика
+  живёт в `DotSoundPrivateCore`.
+- Любой агент обязан соблюдать `docs/ai-boundary-policy.md`.
+- Запрещено переносить private-код в public-ветку без явного
+  подтверждения владельца.
+- Если неясно, к какой зоне относится изменение, агент должен
+  остановиться и запросить подтверждение.
+
 ## Стек
 - Python 3.12
 - aiogram 3.x (Telegram Bot API, полностью async)

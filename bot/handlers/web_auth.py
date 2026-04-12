@@ -6,19 +6,17 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
+from dotsound_private_core.services import (
+    auth_generate_code_url,
+    build_internal_headers,
+)
 
-from bot.api.client import BackendClient
 from bot.config import settings
 
 router = Router(name="web_auth")
 logger: structlog.stdlib.BoundLogger = (
     structlog.get_logger(__name__)
 )
-
-_BACKEND_GENERATE_URL = (
-    "/api/v1/auth/generate-code"
-)
-
 
 @router.message(
     CommandStart(
@@ -42,20 +40,17 @@ async def cmd_start_web_login(
 
     import httpx
 
-    headers: dict[str, str] = {}
-    if settings.internal_api_secret:
-        headers["X-Internal-Secret"] = (
-            settings.internal_api_secret
-        )
-
     try:
         async with httpx.AsyncClient(
-            base_url=settings.backend_base_url,
             timeout=10,
         ) as client:
             resp = await client.post(
-                _BACKEND_GENERATE_URL,
-                headers=headers,
+                auth_generate_code_url(
+                    settings.backend_base_url
+                ),
+                headers=build_internal_headers(
+                    settings.internal_api_secret
+                ),
                 json={"telegram_id": user.id},
             )
             if resp.status_code != 200:
