@@ -1,0 +1,79 @@
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass, field
+
+_SESSION_TTL = 1800
+
+
+@dataclass
+class PlayerSession:
+    chat_id: int
+    user_id: int
+    source: str
+    audio_message_ids: list[int] = field(
+        default_factory=list
+    )
+    control_message_id: int = 0
+    track_ids: list[int] = field(
+        default_factory=list
+    )
+    page: int = 1
+    has_more: bool = True
+    last_active: float = field(
+        default_factory=time.time
+    )
+
+    def touch(self) -> None:
+        self.last_active = time.time()
+
+    @property
+    def expired(self) -> bool:
+        return (
+            time.time() - self.last_active
+            > _SESSION_TTL
+        )
+
+
+class PlayerSessionManager:
+    def __init__(self) -> None:
+        self._sessions: dict[int, PlayerSession] = {}
+
+    def get(
+        self, user_id: int
+    ) -> PlayerSession | None:
+        session = self._sessions.get(user_id)
+        if session and session.expired:
+            self._sessions.pop(user_id, None)
+            return None
+        return session
+
+    def create(
+        self,
+        chat_id: int,
+        user_id: int,
+        source: str,
+    ) -> PlayerSession:
+        session = PlayerSession(
+            chat_id=chat_id,
+            user_id=user_id,
+            source=source,
+        )
+        self._sessions[user_id] = session
+        return session
+
+    def remove(self, user_id: int) -> None:
+        self._sessions.pop(user_id, None)
+
+    def cleanup(self) -> int:
+        expired = [
+            uid
+            for uid, s in self._sessions.items()
+            if s.expired
+        ]
+        for uid in expired:
+            del self._sessions[uid]
+        return len(expired)
+
+
+player_sessions = PlayerSessionManager()

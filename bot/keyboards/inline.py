@@ -16,6 +16,10 @@ def main_menu_kb() -> InlineKeyboardMarkup:
         web_app=WebAppInfo(url=settings.mini_app_url),
     )
     builder.button(
+        text="🎧 Плеер",
+        callback_data="menu:player",
+    )
+    builder.button(
         text="👤 Профиль",
         callback_data="menu:profile",
     )
@@ -27,7 +31,7 @@ def main_menu_kb() -> InlineKeyboardMarkup:
         text="🔐 История входов",
         callback_data="menu:login_history",
     )
-    builder.adjust(1, 2, 1)
+    builder.adjust(1, 1, 2, 1)
     return builder.as_markup()
 
 
@@ -142,6 +146,56 @@ def playlists_keyboard(
         callback_data="create_playlist",
     )
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def player_source_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🎵 Мои треки",
+        callback_data="player:src:my",
+    )
+    builder.button(
+        text="❤️ Лайки",
+        callback_data="player:src:liked",
+    )
+    builder.button(
+        text="📻 Лента",
+        callback_data="player:src:feed",
+    )
+    builder.button(
+        text="← Назад в меню",
+        callback_data="menu:main",
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def player_control_kb(
+    track_count: int,
+    has_more: bool,
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for i in range(track_count):
+        builder.button(
+            text=f"❤️ {i + 1}",
+            callback_data=f"player:like:{i}",
+        )
+    if has_more:
+        builder.button(
+            text="Ещё 3 →",
+            callback_data="player:next",
+        )
+    builder.button(
+        text="← Главное меню",
+        callback_data="player:menu",
+    )
+    like_row = list(range(track_count))
+    rows: list[int] = [len(like_row)]
+    if has_more:
+        rows.append(1)
+    rows.append(1)
+    builder.adjust(*rows)
     return builder.as_markup()
 
 

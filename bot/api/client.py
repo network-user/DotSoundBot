@@ -163,6 +163,78 @@ class BackendClient:
         )
         return result
 
+    async def get_internal_token(
+        self,
+        telegram_id: int,
+        secret: str,
+    ) -> dict[str, Any]:
+        from dotsound_private_core.contracts import (
+            INTERNAL_SECRET_HEADER,
+        )
+
+        response = await self._request(
+            "POST",
+            "/api/v1/auth/internal-token",
+            json={"telegram_id": telegram_id},
+            headers={INTERNAL_SECRET_HEADER: secret},
+        )
+        return response.json()
+
+    async def get_stream_url(
+        self, track_id: int, token: str
+    ) -> str:
+        response = await self._request(
+            "GET",
+            f"/api/v1/tracks/{track_id}/stream",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        data: dict[str, Any] = response.json()
+        return str(data["url"])
+
+    async def get_my_tracks(
+        self,
+        token: str,
+        page: int = 1,
+        size: int = 3,
+    ) -> dict[str, Any]:
+        response = await self._request(
+            "GET",
+            "/api/v1/tracks/my",
+            params={"page": page, "size": size},
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        return response.json()
+
+    async def get_liked_tracks(
+        self,
+        user_id: int,
+        token: str,
+        size: int = 200,
+    ) -> dict[str, Any]:
+        response = await self._request(
+            "GET",
+            f"/api/v1/likes/{user_id}",
+            params={"size": size},
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        return response.json()
+
+    async def get_feed_tracks(
+        self,
+        page: int = 1,
+        size: int = 3,
+    ) -> dict[str, Any]:
+        return await self.get(
+            "/api/v1/tracks",
+            params={"page": page, "size": size},
+        )
+
     async def close(self) -> None:
         await self._client.aclose()
 

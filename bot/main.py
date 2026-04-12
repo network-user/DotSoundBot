@@ -15,6 +15,7 @@ from bot.handlers import (
     base,
     inline_mode,
     likes,
+    player,
     playlists,
     stats,
     web_auth,
@@ -55,6 +56,7 @@ async def main() -> None:
     dp.include_router(audio.router)
     dp.include_router(stats.router)
     dp.include_router(playlists.router)
+    dp.include_router(player.router)
     dp.include_router(base.router)
     dp.include_router(inline_mode.router)
 

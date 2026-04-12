@@ -13,6 +13,7 @@ class BotSettings(BaseSettings):
     log_level: str = "INFO"
     debug: bool = False
     redact_logs: bool = True
+    redis_url: str = "redis://localhost:6379/0"
     internal_api_port: int = 8081
     internal_api_secret: str = ""
 
