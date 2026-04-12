@@ -50,8 +50,12 @@ async def _send_stats(
             )
             return
 
-    total_tracks: int = stats["total_tracks"]
-    total_plays: int = stats["total_plays"]
+    total_tracks: int = stats.get(
+        "total_tracks", 0
+    )
+    total_plays: int = stats.get(
+        "total_plays", 0
+    )
     top_tracks: list[dict] = stats.get(
         "top_tracks", []
     )

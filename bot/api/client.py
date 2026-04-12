@@ -32,6 +32,19 @@ class BackendClient:
         response = await self._request("POST", path, **kwargs)
         return response.json()
 
+    async def _get_token_for_user(
+        self, telegram_id: int
+    ) -> str:
+        secret = settings.internal_api_secret
+        if not secret:
+            raise BackendError(
+                500, "internal_api_secret not configured"
+            )
+        result = await self.get_internal_token(
+            telegram_id, secret
+        )
+        return str(result["access_token"])
+
     async def upload_audio(
         self,
         file_bytes: bytes,
@@ -56,11 +69,24 @@ class BackendClient:
         if uploader_id is not None:
             data["uploader_id"] = str(uploader_id)
 
+        headers: dict[str, str] = {}
+        if uploader_id is not None:
+            try:
+                token = await self._get_token_for_user(
+                    uploader_id
+                )
+                headers["Authorization"] = (
+                    f"Bearer {token}"
+                )
+            except Exception:
+                logger.warning("upload_token_failed")
+
         response = await self._request(
             "POST",
             "/api/v1/tracks/upload",
             files=files,
             data=data,
+            headers=headers,
             timeout=60.0,
         )
         result: dict[str, Any] = response.json()
@@ -128,33 +154,64 @@ class BackendClient:
         )
 
     async def get_user_playlists(
-        self, owner_id: int
+        self, owner_id: int, telegram_id: int = 0
     ) -> list[dict[str, Any]]:
         logger.info(
-            "backend_get_user_playlists", owner_id=owner_id
+            "backend_get_user_playlists",
+            owner_id=owner_id,
         )
-        result = await self.get(
+        headers: dict[str, str] = {}
+        tg_id = telegram_id or owner_id
+        try:
+            token = await self._get_token_for_user(
+                tg_id
+            )
+            headers["Authorization"] = (
+                f"Bearer {token}"
+            )
+        except Exception:
+            logger.warning("playlist_list_token_failed")
+        response = await self._request(
+            "GET",
             "/api/v1/playlists",
-            params={"owner_id": owner_id},
+            headers=headers,
         )
-        return result if isinstance(result, list) else []
+        result = response.json()
+        return (
+            result if isinstance(result, list) else []
+        )
 
     async def create_playlist(
         self,
         owner_id: int,
         name: str,
         is_public: bool = False,
+        telegram_id: int = 0,
     ) -> dict[str, Any]:
         logger.info(
             "backend_create_playlist",
             owner_id=owner_id,
             name=name,
         )
+        headers: dict[str, str] = {}
+        tg_id = telegram_id or owner_id
+        try:
+            token = await self._get_token_for_user(
+                tg_id
+            )
+            headers["Authorization"] = (
+                f"Bearer {token}"
+            )
+        except Exception:
+            logger.warning("playlist_create_token_failed")
         response = await self._request(
             "POST",
             "/api/v1/playlists",
-            params={"owner_id": owner_id},
-            json={"name": name, "is_public": is_public},
+            json={
+                "name": name,
+                "is_public": is_public,
+            },
+            headers=headers,
         )
         result: dict[str, Any] = response.json()
         logger.info(

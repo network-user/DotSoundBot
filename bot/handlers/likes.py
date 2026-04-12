@@ -17,7 +17,13 @@ async def on_like(callback: CallbackQuery) -> None:
         return
 
     user_id = callback.from_user.id
-    track_id = int(callback.data.split("_", 1)[1])
+    try:
+        track_id = int(
+            callback.data.split("_", 1)[1]
+        )
+    except (IndexError, ValueError):
+        await callback.answer()
+        return
 
     structlog.contextvars.bind_contextvars(
         handler="on_like",
@@ -61,7 +67,13 @@ async def on_dislike(
         return
 
     user_id = callback.from_user.id
-    track_id = int(callback.data.split("_", 1)[1])
+    try:
+        track_id = int(
+            callback.data.split("_", 1)[1]
+        )
+    except (IndexError, ValueError):
+        await callback.answer()
+        return
 
     structlog.contextvars.bind_contextvars(
         handler="on_dislike",

@@ -154,6 +154,18 @@ async def _send_audio_batch(
     return message_ids
 
 
+def _is_file_id(value: str) -> bool:
+    return not value.startswith(("http://", "https://"))
+
+
+def _audio_input(
+    value: str, title: str
+) -> str | URLInputFile:
+    if _is_file_id(value):
+        return value
+    return URLInputFile(value, filename=f"{title}.mp3")
+
+
 async def _edit_audio_batch(
     bot: Bot,
     client: BackendClient,
@@ -172,6 +184,7 @@ async def _edit_audio_batch(
         cached_fid = await get_cached_file_id(
             track_id
         )
+        is_cached = cached_fid is not None
         if not cached_fid:
             try:
                 cached_fid = (
@@ -186,6 +199,13 @@ async def _edit_audio_batch(
                 )
                 continue
 
+        audio = _audio_input(cached_fid, title)
+        media = InputMediaAudio(
+            media=audio,
+            title=title,
+            performer=artist or None,
+        )
+
         if i < len(session.audio_message_ids):
             try:
                 await bot.edit_message_media(
@@ -193,11 +213,7 @@ async def _edit_audio_batch(
                     message_id=(
                         session.audio_message_ids[i]
                     ),
-                    media=InputMediaAudio(
-                        media=cached_fid,
-                        title=title,
-                        performer=artist or None,
-                    ),
+                    media=media,
                 )
                 msg_id = session.audio_message_ids[i]
             except Exception:
@@ -209,13 +225,15 @@ async def _edit_audio_batch(
                 )
                 msg = await bot.send_audio(
                     chat_id=session.chat_id,
-                    audio=cached_fid,
+                    audio=audio,
                     title=title,
                     performer=artist or None,
                 )
                 msg_id = msg.message_id
                 if (
-                    msg.audio and msg.audio.file_id
+                    not is_cached
+                    and msg.audio
+                    and msg.audio.file_id
                 ):
                     await set_cached_file_id(
                         track_id, msg.audio.file_id
@@ -223,12 +241,16 @@ async def _edit_audio_batch(
         else:
             msg = await bot.send_audio(
                 chat_id=session.chat_id,
-                audio=cached_fid,
+                audio=audio,
                 title=title,
                 performer=artist or None,
             )
             msg_id = msg.message_id
-            if msg.audio and msg.audio.file_id:
+            if (
+                not is_cached
+                and msg.audio
+                and msg.audio.file_id
+            ):
                 await set_cached_file_id(
                     track_id, msg.audio.file_id
                 )

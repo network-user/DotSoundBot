@@ -2,8 +2,8 @@ import io
 from typing import Any
 
 import structlog
-from aiogram import Bot
 from aiohttp import web
+from aiogram import Bot
 from dotsound_private_core.contracts import (
     DOWNLOAD_AUDIO_ENDPOINT,
     INTERNAL_SECRET_HEADER,
@@ -24,7 +24,10 @@ _MAX_DOWNLOAD_SIZE = 20 * 1024 * 1024
 def _check_secret(request: web.Request) -> bool:
     expected = settings.internal_api_secret
     if not expected:
-        return True
+        logger.error(
+            "internal_api_secret_not_configured"
+        )
+        return False
     token = request.headers.get(
         INTERNAL_SECRET_HEADER, ""
     )
@@ -100,7 +103,12 @@ async def handle_download_audio(
             {"error": "forbidden"}, status=403
         )
 
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response(
+            {"error": "invalid JSON"}, status=400
+        )
     file_id: str = body.get("file_id", "")
     if not file_id:
         return web.json_response(
@@ -162,7 +170,12 @@ async def handle_send_auth_code(
             {"error": "forbidden"}, status=403
         )
 
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response(
+            {"error": "invalid JSON"}, status=400
+        )
     telegram_id: int = body.get("telegram_id", 0)
     code: str = body.get("code", "")
 
@@ -209,7 +222,12 @@ async def handle_send_login_notification(
             {"error": "forbidden"}, status=403
         )
 
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response(
+            {"error": "invalid JSON"}, status=400
+        )
     telegram_id: int = body.get("telegram_id", 0)
     ip: str = body.get("ip", "unknown")
     device: str = body.get("device", "unknown")
@@ -233,7 +251,7 @@ async def handle_send_login_notification(
             [
                 InlineKeyboardButton(
                     text="🏠 Главное меню",
-                    callback_data="open_player",
+                    callback_data="menu:player",
                 )
             ]
         ]

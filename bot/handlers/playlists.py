@@ -42,6 +42,10 @@ async def on_playlist_name_received(
     if not message.from_user or not message.text:
         return
 
+    if message.text.startswith("/"):
+        await state.clear()
+        return
+
     name = message.text.strip()
     if not name:
         await message.answer(
