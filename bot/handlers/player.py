@@ -36,21 +36,30 @@ logger: structlog.stdlib.BoundLogger = (
 )
 
 _BATCH_SIZE = 3
+_TOKEN_CACHE_TTL = 720
 
-_token_cache: dict[int, str] = {}
+_token_cache: dict[int, tuple[str, float]] = {}
 
 
 async def _get_token(
     client: BackendClient, telegram_id: int
 ) -> str:
-    cached = _token_cache.get(telegram_id)
-    if cached:
-        return cached
+    import time
+
+    entry = _token_cache.get(telegram_id)
+    if entry:
+        token, issued_at = entry
+        if time.time() - issued_at < _TOKEN_CACHE_TTL:
+            return token
+
     data = await client.get_internal_token(
         telegram_id, settings.internal_api_secret
     )
-    token: str = data["access_token"]
-    _token_cache[telegram_id] = token
+    token = data["access_token"]
+    _token_cache[telegram_id] = (
+        token,
+        time.time(),
+    )
     return token
 
 
@@ -299,7 +308,12 @@ async def on_player_source(
             )
             token = token_data["access_token"]
             user_id: int = token_data["user_id"]
-            _token_cache[telegram_id] = token
+            import time
+
+            _token_cache[telegram_id] = (
+                token,
+                time.time(),
+            )
         except BackendError:
             if callback.message and isinstance(
                 callback.message, Message
