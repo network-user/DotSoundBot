@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 _SESSION_TTL = 1800
 
@@ -11,6 +12,7 @@ class PlayerSession:
     chat_id: int
     user_id: int
     source: str
+    internal_user_id: int = 0
     audio_message_ids: list[int] = field(
         default_factory=list
     )
@@ -23,6 +25,14 @@ class PlayerSession:
     last_active: float = field(
         default_factory=time.time
     )
+    prefetched_tracks: list[dict[str, Any]] = field(
+        default_factory=list
+    )
+    prefetched_urls: dict[int, str] = field(
+        default_factory=dict
+    )
+    prefetched_total: int = 0
+    prefetched_has_more: bool = False
 
     def touch(self) -> None:
         self.last_active = time.time()

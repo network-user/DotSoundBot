@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import Any
 
 import structlog
@@ -11,7 +13,10 @@ from aiogram.types import (
     URLInputFile,
 )
 
-from bot.api.client import BackendClient, BackendError
+from bot.api.client import (
+    BackendClient,
+    BackendError,
+)
 from bot.config import settings
 from bot.keyboards.inline import (
     main_menu_kb,
@@ -38,37 +43,36 @@ logger: structlog.stdlib.BoundLogger = (
 _BATCH_SIZE = 3
 _TOKEN_CACHE_TTL = 720
 
-_token_cache: dict[int, tuple[str, float]] = {}
+_token_cache: dict[int, tuple[str, int, float]] = {}
 
 
 async def _get_token(
     client: BackendClient, telegram_id: int
-) -> str:
-    import time
-
+) -> tuple[str, int]:
     entry = _token_cache.get(telegram_id)
     if entry:
-        token, issued_at = entry
+        token, uid, issued_at = entry
         if time.time() - issued_at < _TOKEN_CACHE_TTL:
-            return token
+            return token, uid
 
     data = await client.get_internal_token(
         telegram_id, settings.internal_api_secret
     )
-    token = data["access_token"]
+    token: str = data["access_token"]
+    uid: int = data["user_id"]
     _token_cache[telegram_id] = (
         token,
+        uid,
         time.time(),
     )
-    return token
+    return token, uid
 
 
 async def _fetch_tracks(
     client: BackendClient,
     source: str,
-    telegram_id: int,
     token: str,
-    user_id: int,
+    internal_user_id: int,
     page: int,
 ) -> tuple[list[dict[str, Any]], int, bool]:
     if source == "my":
@@ -82,14 +86,14 @@ async def _fetch_tracks(
 
     if source == "liked":
         data = await client.get_liked_tracks(
-            user_id, token
+            internal_user_id, token
         )
         items = data.get("items", [])
         total = data.get("total", len(items))
         start = (page - 1) * _BATCH_SIZE
-        end = start + _BATCH_SIZE
-        batch = items[start:end]
-        has_more = end < len(items)
+        end_idx = start + _BATCH_SIZE
+        batch = items[start:end_idx]
+        has_more = end_idx < len(items)
         return batch, total, has_more
 
     data = await client.get_feed_tracks(
@@ -99,6 +103,42 @@ async def _fetch_tracks(
     total = data["total"]
     has_more = page * _BATCH_SIZE < total
     return items, total, has_more
+
+
+def _is_file_id(value: str) -> bool:
+    return not value.startswith(
+        ("http://", "https://")
+    )
+
+
+def _audio_input(
+    value: str, title: str
+) -> str | URLInputFile:
+    if _is_file_id(value):
+        return value
+    return URLInputFile(
+        value, filename=f"{title}.mp3"
+    )
+
+
+async def _resolve_audio(
+    client: BackendClient,
+    track_id: int,
+    token: str,
+) -> tuple[str | None, bool]:
+    cached = await get_cached_file_id(track_id)
+    if cached:
+        return cached, True
+    try:
+        url = await client.get_stream_url(
+            track_id, token
+        )
+        return url, False
+    except BackendError:
+        logger.warning(
+            "stream_url_failed", track_id=track_id
+        )
+        return None, False
 
 
 async def _send_audio_batch(
@@ -116,54 +156,37 @@ async def _send_audio_batch(
             "performer", ""
         )
 
-        cached_fid = await get_cached_file_id(
-            track_id
+        media_src, is_cached = await _resolve_audio(
+            client, track_id, token
         )
-        if cached_fid:
-            msg = await bot.send_audio(
-                chat_id=chat_id,
-                audio=cached_fid,
-                title=title,
-                performer=artist or None,
-            )
-        else:
-            try:
-                url = await client.get_stream_url(
-                    track_id, token
-                )
-            except BackendError:
-                logger.warning(
-                    "stream_url_failed",
-                    track_id=track_id,
-                )
-                continue
-            msg = await bot.send_audio(
-                chat_id=chat_id,
-                audio=URLInputFile(
-                    url, filename=f"{title}.mp3"
-                ),
-                title=title,
-                performer=artist or None,
-            )
-            if msg.audio and msg.audio.file_id:
-                await set_cached_file_id(
-                    track_id, msg.audio.file_id
-                )
+        if not media_src:
+            continue
 
+        try:
+            audio = _audio_input(media_src, title)
+            msg = await bot.send_audio(
+                chat_id=chat_id,
+                audio=audio,
+                title=title,
+                performer=artist or None,
+            )
+        except Exception:
+            logger.warning(
+                "send_audio_failed",
+                track_id=track_id,
+            )
+            continue
+
+        if (
+            not is_cached
+            and msg.audio
+            and msg.audio.file_id
+        ):
+            await set_cached_file_id(
+                track_id, msg.audio.file_id
+            )
         message_ids.append(msg.message_id)
     return message_ids
-
-
-def _is_file_id(value: str) -> bool:
-    return not value.startswith(("http://", "https://"))
-
-
-def _audio_input(
-    value: str, title: str
-) -> str | URLInputFile:
-    if _is_file_id(value):
-        return value
-    return URLInputFile(value, filename=f"{title}.mp3")
 
 
 async def _edit_audio_batch(
@@ -181,30 +204,14 @@ async def _edit_audio_batch(
             "performer", ""
         )
 
-        cached_fid = await get_cached_file_id(
-            track_id
+        media_src, is_cached = await _resolve_audio(
+            client, track_id, token
         )
-        is_cached = cached_fid is not None
-        if not cached_fid:
-            try:
-                cached_fid = (
-                    await client.get_stream_url(
-                        track_id, token
-                    )
-                )
-            except BackendError:
-                logger.warning(
-                    "stream_url_failed",
-                    track_id=track_id,
-                )
-                continue
+        if not media_src:
+            continue
 
-        audio = _audio_input(cached_fid, title)
-        media = InputMediaAudio(
-            media=audio,
-            title=title,
-            performer=artist or None,
-        )
+        audio = _audio_input(media_src, title)
+        msg_id: int | None = None
 
         if i < len(session.audio_message_ids):
             try:
@@ -213,7 +220,11 @@ async def _edit_audio_batch(
                     message_id=(
                         session.audio_message_ids[i]
                     ),
-                    media=media,
+                    media=InputMediaAudio(
+                        media=audio,
+                        title=title,
+                        performer=artist or None,
+                    ),
                 )
                 msg_id = session.audio_message_ids[i]
             except Exception:
@@ -223,6 +234,39 @@ async def _edit_audio_batch(
                         session.audio_message_ids[i]
                     ),
                 )
+                if not is_cached:
+                    fresh, _ = await _resolve_audio(
+                        client, track_id, token
+                    )
+                    if fresh:
+                        audio = _audio_input(
+                            fresh, title
+                        )
+
+                try:
+                    msg = await bot.send_audio(
+                        chat_id=session.chat_id,
+                        audio=audio,
+                        title=title,
+                        performer=artist or None,
+                    )
+                    msg_id = msg.message_id
+                    if (
+                        not is_cached
+                        and msg.audio
+                        and msg.audio.file_id
+                    ):
+                        await set_cached_file_id(
+                            track_id,
+                            msg.audio.file_id,
+                        )
+                except Exception:
+                    logger.error(
+                        "fallback_send_failed",
+                        track_id=track_id,
+                    )
+        else:
+            try:
                 msg = await bot.send_audio(
                     chat_id=session.chat_id,
                     audio=audio,
@@ -238,24 +282,14 @@ async def _edit_audio_batch(
                     await set_cached_file_id(
                         track_id, msg.audio.file_id
                     )
-        else:
-            msg = await bot.send_audio(
-                chat_id=session.chat_id,
-                audio=audio,
-                title=title,
-                performer=artist or None,
-            )
-            msg_id = msg.message_id
-            if (
-                not is_cached
-                and msg.audio
-                and msg.audio.file_id
-            ):
-                await set_cached_file_id(
-                    track_id, msg.audio.file_id
+            except Exception:
+                logger.error(
+                    "send_audio_failed",
+                    track_id=track_id,
                 )
 
-        new_ids.append(msg_id)
+        if msg_id is not None:
+            new_ids.append(msg_id)
 
     for j in range(
         len(tracks), len(session.audio_message_ids)
@@ -269,6 +303,69 @@ async def _edit_audio_batch(
             pass
 
     return new_ids
+
+
+async def _prefetch_next(
+    session: PlayerSession,
+    telegram_id: int,
+) -> None:
+    try:
+        async with BackendClient() as client:
+            token, uid = await _get_token(
+                client, telegram_id
+            )
+            tracks, total, has_more = (
+                await _fetch_tracks(
+                    client,
+                    session.source,
+                    token,
+                    session.internal_user_id or uid,
+                    page=session.page + 1,
+                )
+            )
+            if not tracks:
+                session.prefetched_tracks = []
+                session.prefetched_has_more = False
+                return
+
+            urls: dict[int, str] = {}
+            for t in tracks:
+                tid: int = t["id"]
+                cached = await get_cached_file_id(tid)
+                if cached:
+                    urls[tid] = cached
+                else:
+                    try:
+                        url = (
+                            await client.get_stream_url(
+                                tid, token
+                            )
+                        )
+                        urls[tid] = url
+                    except BackendError:
+                        pass
+
+            session.prefetched_tracks = tracks
+            session.prefetched_urls = urls
+            session.prefetched_total = total
+            session.prefetched_has_more = has_more
+            logger.debug(
+                "prefetch_complete",
+                page=session.page + 1,
+                count=len(tracks),
+            )
+    except Exception:
+        logger.warning("prefetch_failed")
+
+
+def _start_prefetch(
+    session: PlayerSession,
+    telegram_id: int,
+) -> None:
+    if session.has_more:
+        asyncio.create_task(
+            _prefetch_next(session, telegram_id)
+        )
 
 
 @router.callback_query(F.data == "menu:player")
@@ -299,7 +396,11 @@ async def on_player_source(
 
     source = callback.data.split(":")[-1]
     telegram_id = callback.from_user.id
-    chat_id = callback.message.chat.id if callback.message else telegram_id
+    chat_id = (
+        callback.message.chat.id
+        if callback.message
+        else telegram_id
+    )
 
     old_session = player_sessions.get(telegram_id)
     if old_session:
@@ -322,19 +423,8 @@ async def on_player_source(
 
     async with BackendClient() as client:
         try:
-            token_data = (
-                await client.get_internal_token(
-                    telegram_id,
-                    settings.internal_api_secret,
-                )
-            )
-            token = token_data["access_token"]
-            user_id: int = token_data["user_id"]
-            import time
-
-            _token_cache[telegram_id] = (
-                token,
-                time.time(),
+            token, internal_uid = await _get_token(
+                client, telegram_id
             )
         except BackendError:
             if callback.message and isinstance(
@@ -352,9 +442,8 @@ async def on_player_source(
                 await _fetch_tracks(
                     client,
                     source,
-                    telegram_id,
                     token,
-                    user_id,
+                    internal_uid,
                     page=1,
                 )
             )
@@ -412,6 +501,7 @@ async def on_player_source(
         user_id=telegram_id,
         source=source,
     )
+    session.internal_user_id = internal_uid
     session.audio_message_ids = msg_ids
     session.control_message_id = (
         control_msg.message_id
@@ -420,6 +510,8 @@ async def on_player_source(
     session.page = 1
     session.has_more = has_more
     session.touch()
+
+    _start_prefetch(session, telegram_id)
 
 
 @router.callback_query(F.data == "player:next")
@@ -441,34 +533,45 @@ async def on_player_next(
     await callback.answer("Загрузка...")
     session.touch()
 
+    if session.prefetched_tracks:
+        tracks = session.prefetched_tracks
+        total = session.prefetched_total
+        has_more = session.prefetched_has_more
+
+        session.prefetched_tracks = []
+        session.prefetched_urls = {}
+        session.prefetched_total = 0
+        session.prefetched_has_more = False
+    else:
+        async with BackendClient() as client:
+            token, _ = await _get_token(
+                client, telegram_id
+            )
+            try:
+                tracks, total, has_more = (
+                    await _fetch_tracks(
+                        client,
+                        session.source,
+                        token,
+                        session.internal_user_id,
+                        page=session.page + 1,
+                    )
+                )
+            except BackendError:
+                await callback.answer(
+                    "Ошибка загрузки."
+                )
+                return
+
+    if not tracks:
+        await callback.answer("Больше треков нет.")
+        session.has_more = False
+        return
+
     async with BackendClient() as client:
-        token = await _get_token(
+        token, _ = await _get_token(
             client, telegram_id
         )
-        try:
-            tracks, total, has_more = (
-                await _fetch_tracks(
-                    client,
-                    session.source,
-                    telegram_id,
-                    token,
-                    session.user_id,
-                    page=session.page + 1,
-                )
-            )
-        except BackendError:
-            await callback.answer(
-                "Ошибка загрузки."
-            )
-            return
-
-        if not tracks:
-            await callback.answer(
-                "Больше треков нет."
-            )
-            session.has_more = False
-            return
-
         new_ids = await _edit_audio_batch(
             callback.bot,
             client,
@@ -501,6 +604,8 @@ async def on_player_next(
     except Exception:
         pass
 
+    _start_prefetch(session, telegram_id)
+
 
 @router.callback_query(
     F.data.startswith("player:like:")
@@ -515,9 +620,7 @@ async def on_player_like(
     telegram_id = callback.from_user.id
     session = player_sessions.get(telegram_id)
     if not session:
-        await callback.answer(
-            "Сессия истекла."
-        )
+        await callback.answer("Сессия истекла.")
         return
 
     idx_str = callback.data.split(":")[-1]
@@ -536,15 +639,12 @@ async def on_player_like(
 
     async with BackendClient() as client:
         try:
-            token_data = (
-                await client.get_internal_token(
-                    telegram_id,
-                    settings.internal_api_secret,
-                )
+            _, uid = await _get_token(
+                client, telegram_id
             )
-            user_id = token_data["user_id"]
             result = await client.toggle_like(
-                user_id, track_id
+                session.internal_user_id or uid,
+                track_id,
             )
             liked = result.get("liked", False)
             await callback.answer(
