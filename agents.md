@@ -5,6 +5,11 @@ DotSound — музыкальная платформа в Telegram (SoundCloud-s
 Этот репозиторий: Telegram-бот (aiogram 3.x) + Mini App (HTML/CSS/JS). Только визуальная часть.
 Вся бизнес-логика и данные — в репозитории `DotSoundBackend`.
 
+## TODO-трекер
+- Файл `TODO.md` в корне — единый источник задач проекта.
+- Агент обязан прочитать его в начале сессии и обновить после
+  выполнения задач.
+
 ## Жёсткие границы public/private
 - Этот репозиторий — публичный thin client. Private bridge логика
   живёт в `DotSoundPrivateCore`.
