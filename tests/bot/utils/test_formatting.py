@@ -1,30 +1,26 @@
+import pytest
+
 from bot.utils.formatting import (
     format_player_message,
     truncate,
 )
 
 
-def test_truncate_short_string_unchanged() -> None:
-    assert truncate("hello", 10) == "hello"
-
-
-def test_truncate_long_string_with_ellipsis() -> None:
-    result = truncate("a" * 100, 10)
-
-    assert len(result) == 10
-    assert result.endswith("\u2026")
-    assert result == "a" * 9 + "\u2026"
-
-
-def test_truncate_exact_length_unchanged() -> None:
-    assert truncate("hello", 5) == "hello"
-
-
-def test_truncate_one_over() -> None:
-    result = truncate("abcdef", 5)
-
-    assert result == "abcd\u2026"
-    assert len(result) == 5
+@pytest.mark.parametrize(
+    ("text", "max_len", "expected"),
+    [
+        ("hello", 10, "hello"),
+        ("a" * 100, 10, "a" * 9 + "\u2026"),
+        ("hello", 5, "hello"),
+        ("abcdef", 5, "abcd\u2026"),
+    ],
+)
+def test_truncate(
+    text: str, max_len: int, expected: str
+) -> None:
+    result = truncate(text, max_len)
+    assert result == expected
+    assert len(result) <= max_len
 
 
 def test_format_player_message_with_tracks() -> None:

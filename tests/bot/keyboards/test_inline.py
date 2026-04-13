@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from bot.keyboards.inline import (
     about_kb,
     back_to_about_kb,
@@ -47,12 +49,22 @@ def test_about_kb_has_sections() -> None:
     assert "menu:main" in data
 
 
-def test_back_to_about_kb() -> None:
-    kb = back_to_about_kb()
-
+@pytest.mark.parametrize(
+    ("kb_fn", "expected_data"),
+    [
+        (back_to_about_kb, "menu:about"),
+        (back_to_menu_kb, "menu:main"),
+    ],
+)
+def test_single_back_button(
+    kb_fn, expected_data: str
+) -> None:
+    kb = kb_fn()
     assert len(kb.inline_keyboard) == 1
-    btn = kb.inline_keyboard[0][0]
-    assert btn.callback_data == "menu:about"
+    assert (
+        kb.inline_keyboard[0][0].callback_data
+        == expected_data
+    )
 
 
 @patch("bot.keyboards.inline.settings")
@@ -69,16 +81,6 @@ def test_profile_kb_has_back(
     ]
     data = [b.callback_data for b in buttons]
     assert "menu:main" in data
-
-
-def test_back_to_menu_kb() -> None:
-    kb = back_to_menu_kb()
-
-    assert len(kb.inline_keyboard) == 1
-    assert (
-        kb.inline_keyboard[0][0].callback_data
-        == "menu:main"
-    )
 
 
 def test_open_player_keyboard() -> None:
@@ -145,9 +147,21 @@ def test_player_source_kb() -> None:
     assert "player:src:feed" in data
 
 
-def test_player_control_kb_with_more() -> None:
+@pytest.mark.parametrize(
+    ("track_count", "has_more", "expect_next"),
+    [
+        (3, True, True),
+        (2, False, False),
+    ],
+)
+def test_player_control_kb(
+    track_count: int,
+    has_more: bool,
+    expect_next: bool,
+) -> None:
     kb = player_control_kb(
-        track_count=3, has_more=True
+        track_count=track_count,
+        has_more=has_more,
     )
 
     buttons = [
@@ -156,25 +170,11 @@ def test_player_control_kb_with_more() -> None:
         for btn in row
     ]
     data = [b.callback_data for b in buttons]
-    assert "player:like:0" in data
-    assert "player:like:1" in data
-    assert "player:like:2" in data
-    assert "player:next" in data
-    assert "player:menu" in data
-
-
-def test_player_control_kb_no_more() -> None:
-    kb = player_control_kb(
-        track_count=2, has_more=False
-    )
-
-    buttons = [
-        btn
-        for row in kb.inline_keyboard
-        for btn in row
-    ]
-    data = [b.callback_data for b in buttons]
-    assert "player:next" not in data
+    for i in range(track_count):
+        assert f"player:like:{i}" in data
+    assert (
+        "player:next" in data
+    ) == expect_next
     assert "player:menu" in data
 
 
@@ -188,4 +188,7 @@ def test_help_keyboard(mock_settings) -> None:
         for row in kb.inline_keyboard
         for btn in row
     ]
-    assert any(b.callback_data == "my_stats" for b in buttons)
+    assert any(
+        b.callback_data == "my_stats"
+        for b in buttons
+    )

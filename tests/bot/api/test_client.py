@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
+from dirty_equals import HasLen, IsPartialDict
 
 from bot.api.client import BackendClient, BackendError
 
@@ -68,8 +69,9 @@ async def test_upload_audio_success(
         uploader_id=1,
     )
 
-    assert result["id"] == 42
-    assert result["title"] == "Song"
+    assert result == IsPartialDict(
+        id=42, title="Song"
+    )
 
 
 async def test_upload_audio_without_uploader(
@@ -88,7 +90,7 @@ async def test_upload_audio_without_uploader(
         title="Song2",
     )
 
-    assert result["id"] == 43
+    assert result == IsPartialDict(id=43)
 
 
 async def test_upload_audio_token_failure_continues(
@@ -111,7 +113,7 @@ async def test_upload_audio_token_failure_continues(
         uploader_id=1,
     )
 
-    assert result["id"] == 44
+    assert result == IsPartialDict(id=44)
 
 
 async def test_upload_audio_backend_error(
@@ -154,7 +156,7 @@ async def test_toggle_like(
 
     result = await client.toggle_like(1, 10)
 
-    assert result["liked"] is True
+    assert result == IsPartialDict(liked=True)
 
 
 async def test_toggle_dislike(
@@ -168,7 +170,7 @@ async def test_toggle_dislike(
 
     result = await client.toggle_dislike(1, 10)
 
-    assert result["disliked"] is True
+    assert result == IsPartialDict(disliked=True)
 
 
 # ------------------------------------------------------------------
@@ -189,8 +191,9 @@ async def test_get_user_profile_success(
 
     result = await client.get_user_profile(123)
 
-    assert result["id"] == 5
-    assert result["first_name"] == "Alice"
+    assert result == IsPartialDict(
+        id=5, first_name="Alice"
+    )
 
 
 async def test_get_user_profile_backend_error(
@@ -221,7 +224,7 @@ async def test_get_user_stats(
 
     result = await client.get_user_stats(1)
 
-    assert result["total_tracks"] == 5
+    assert result == IsPartialDict(total_tracks=5)
 
 
 # ------------------------------------------------------------------
@@ -241,7 +244,9 @@ async def test_get_login_history_list(
     result = await client.get_login_history(1)
 
     assert isinstance(result, list)
-    assert result[0]["ip"] == "1.2.3.4"
+    assert result[0] == IsPartialDict(
+        ip="1.2.3.4"
+    )
 
 
 async def test_get_login_history_non_list(
@@ -277,8 +282,8 @@ async def test_get_user_playlists_success(
 
     result = await client.get_user_playlists(1)
 
-    assert len(result) == 1
-    assert result[0]["name"] == "Chill"
+    assert result == HasLen(1)
+    assert result[0] == IsPartialDict(name="Chill")
 
 
 async def test_get_user_playlists_non_list(
@@ -312,7 +317,7 @@ async def test_get_user_playlists_token_failure(
 
     result = await client.get_user_playlists(1)
 
-    assert len(result) == 1
+    assert result == HasLen(1)
 
 
 # ------------------------------------------------------------------
@@ -338,8 +343,9 @@ async def test_create_playlist_success(
         owner_id=1, name="My Playlist"
     )
 
-    assert result["id"] == 10
-    assert result["name"] == "My Playlist"
+    assert result == IsPartialDict(
+        id=10, name="My Playlist"
+    )
 
 
 async def test_create_playlist_token_failure(
@@ -358,7 +364,7 @@ async def test_create_playlist_token_failure(
         owner_id=1, name="P"
     )
 
-    assert result["id"] == 11
+    assert result == IsPartialDict(id=11)
 
 
 # ------------------------------------------------------------------
@@ -382,8 +388,9 @@ async def test_get_internal_token(
         123, "sec"
     )
 
-    assert result["access_token"] == "tok"
-    assert result["user_id"] == 5
+    assert result == IsPartialDict(
+        access_token="tok", user_id=5
+    )
 
 
 # ------------------------------------------------------------------
@@ -431,7 +438,7 @@ async def test_get_my_tracks(
         "tok", page=1, size=3, playable=True
     )
 
-    assert result["total"] == 1
+    assert result == IsPartialDict(total=1)
 
 
 async def test_get_my_tracks_not_playable(
@@ -448,7 +455,7 @@ async def test_get_my_tracks_not_playable(
 
     result = await client.get_my_tracks("tok")
 
-    assert result["total"] == 1
+    assert result == IsPartialDict(total=1)
 
 
 # ------------------------------------------------------------------
@@ -469,7 +476,9 @@ async def test_get_liked_tracks(
 
     result = await client.get_liked_tracks(1, "tok")
 
-    assert len(result["items"]) == 1
+    assert result == IsPartialDict(
+        items=HasLen(1)
+    )
 
 
 # ------------------------------------------------------------------
@@ -493,7 +502,7 @@ async def test_get_feed_tracks(
         page=1, size=3, playable=True
     )
 
-    assert result["total"] == 1
+    assert result == IsPartialDict(total=1)
 
 
 async def test_get_feed_tracks_not_playable(
@@ -510,7 +519,7 @@ async def test_get_feed_tracks_not_playable(
 
     result = await client.get_feed_tracks()
 
-    assert result["total"] == 1
+    assert result == IsPartialDict(total=1)
 
 
 # ------------------------------------------------------------------

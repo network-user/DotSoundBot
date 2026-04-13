@@ -8,6 +8,7 @@ from unittest.mock import (
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
+from dirty_equals import HasLen, IsPartialDict
 
 from bot.api.internal import (
     _check_secret,
@@ -157,9 +158,12 @@ async def test_profile_audios_success(
 
     assert resp.status == 200
     data = json.loads(resp.body)
-    assert data["total_count"] == 1
-    assert len(data["audios"]) == 1
-    assert data["audios"][0]["title"] == "Song 1"
+    assert data == IsPartialDict(
+        total_count=1, audios=HasLen(1)
+    )
+    assert data["audios"][0] == IsPartialDict(
+        title="Song 1"
+    )
 
 
 @patch("bot.api.internal.settings")
@@ -244,7 +248,9 @@ async def test_download_audio_missing_file_id(
 
     assert resp.status == 400
     data = json.loads(resp.body)
-    assert data["error"] == "file_id required"
+    assert data == IsPartialDict(
+        error="file_id required"
+    )
 
 
 @patch("bot.api.internal.settings")
@@ -428,7 +434,7 @@ async def test_send_auth_code_success(
 
     assert resp.status == 200
     data = json.loads(resp.body)
-    assert data["sent"] is True
+    assert data == IsPartialDict(sent=True)
     bot.send_message.assert_awaited_once()
 
 
@@ -541,7 +547,7 @@ async def test_login_notification_success(
 
     assert resp.status == 200
     data = json.loads(resp.body)
-    assert data["sent"] is True
+    assert data == IsPartialDict(sent=True)
     bot.send_message.assert_awaited_once()
 
 
