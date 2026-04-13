@@ -68,7 +68,7 @@ async def _get_token(
     return token, uid
 
 
-async def _fetch_tracks(
+async def _fetch_playable_tracks(
     client: BackendClient,
     source: str,
     token: str,
@@ -77,7 +77,10 @@ async def _fetch_tracks(
 ) -> tuple[list[dict[str, Any]], int, bool]:
     if source == "my":
         data = await client.get_my_tracks(
-            token, page=page, size=_BATCH_SIZE
+            token,
+            page=page,
+            size=_BATCH_SIZE,
+            playable=True,
         )
         items: list[dict[str, Any]] = data["items"]
         total: int = data["total"]
@@ -88,16 +91,24 @@ async def _fetch_tracks(
         data = await client.get_liked_tracks(
             internal_user_id, token
         )
-        items = data.get("items", [])
-        total = data.get("total", len(items))
+        all_items = data.get("items", [])
+        playable = [
+            t
+            for t in all_items
+            if t.get("source") == "soundcloud"
+            or t.get("processing_status") == "active"
+        ]
+        total = len(playable)
         start = (page - 1) * _BATCH_SIZE
         end_idx = start + _BATCH_SIZE
-        batch = items[start:end_idx]
-        has_more = end_idx < len(items)
+        batch = playable[start:end_idx]
+        has_more = end_idx < total
         return batch, total, has_more
 
     data = await client.get_feed_tracks(
-        page=page, size=_BATCH_SIZE
+        page=page,
+        size=_BATCH_SIZE,
+        playable=True,
     )
     items = data["items"]
     total = data["total"]
@@ -315,7 +326,7 @@ async def _prefetch_next(
                 client, telegram_id
             )
             tracks, total, has_more = (
-                await _fetch_tracks(
+                await _fetch_playable_tracks(
                     client,
                     session.source,
                     token,
@@ -439,7 +450,7 @@ async def on_player_source(
 
         try:
             tracks, total, has_more = (
-                await _fetch_tracks(
+                await _fetch_playable_tracks(
                     client,
                     source,
                     token,
@@ -549,7 +560,7 @@ async def on_player_next(
             )
             try:
                 tracks, total, has_more = (
-                    await _fetch_tracks(
+                    await _fetch_playable_tracks(
                         client,
                         session.source,
                         token,

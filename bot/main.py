@@ -32,6 +32,7 @@ async def main() -> None:
     configure_logging(
         settings.log_level,
         redact=settings.redact_logs,
+        json_output=not settings.debug,
     )
     logger.info(
         "sound_bot_starting",

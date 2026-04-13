@@ -45,6 +45,7 @@ def _redact_processor(
 def configure_logging(
     log_level: str = "INFO",
     redact: bool = True,
+    json_output: bool = False,
 ) -> None:
     global _REDACT_ENABLED
     _REDACT_ENABLED = redact
@@ -67,11 +68,20 @@ def configure_logging(
         _redact_processor,
     ]
 
+    if json_output:
+        renderer: structlog.types.Processor = (
+            structlog.processors.JSONRenderer()
+        )
+    else:
+        renderer = structlog.dev.ConsoleRenderer(
+            colors=True
+        )
+
     structlog.configure(
         processors=shared_processors
         + [
             structlog.processors.format_exc_info,
-            structlog.dev.ConsoleRenderer(colors=True),
+            renderer,
         ],
         wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,

@@ -255,11 +255,18 @@ class BackendClient:
         token: str,
         page: int = 1,
         size: int = 3,
+        playable: bool = False,
     ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "page": page,
+            "size": size,
+        }
+        if playable:
+            params["playable"] = "true"
         response = await self._request(
             "GET",
             "/api/v1/tracks/my",
-            params={"page": page, "size": size},
+            params=params,
             headers={
                 "Authorization": f"Bearer {token}"
             },
@@ -286,10 +293,17 @@ class BackendClient:
         self,
         page: int = 1,
         size: int = 3,
+        playable: bool = False,
     ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "page": page,
+            "size": size,
+        }
+        if playable:
+            params["playable"] = "true"
         return await self.get(
             "/api/v1/tracks",
-            params={"page": page, "size": size},
+            params=params,
         )
 
     async def close(self) -> None:
