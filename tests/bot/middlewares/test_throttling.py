@@ -82,11 +82,11 @@ async def test_cleanup_removes_stale() -> None:
 
     await mw(handler, event, {})
 
-    assert 42 in mw._last_message
+    assert 42 in mw._last_event
 
     base = time.monotonic()
     mw._last_cleanup = 0.0
-    mw._last_message[42] = base - 200
+    mw._last_event[42] = base - 200
 
     with patch(
         "bot.middlewares.throttling.time.monotonic",
@@ -95,4 +95,4 @@ async def test_cleanup_removes_stale() -> None:
         event2 = _make_event(user_id=99)
         await mw(handler, event2, {})
 
-    assert 42 not in mw._last_message
+    assert 42 not in mw._last_event

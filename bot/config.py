@@ -15,7 +15,9 @@ class BotSettings(BaseSettings):
     redact_logs: bool = True
     redis_url: str = "redis://localhost:6379/0"
     internal_api_port: int = 8081
+    internal_api_host: str = "127.0.0.1"
     internal_api_secret: str = ""
+    throttle_rate_limit: float = 0.7
 
 
 settings = BotSettings()

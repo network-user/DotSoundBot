@@ -97,28 +97,46 @@ class BackendClient:
         return result
 
     async def toggle_like(
-        self, user_id: int, track_id: int
+        self,
+        user_id: int,
+        track_id: int,
+        token: str,
     ) -> dict[str, Any]:
         logger.info(
             "backend_toggle_like",
             user_id=user_id,
             track_id=track_id,
         )
-        return await self.post(
-            f"/api/v1/likes/{user_id}/{track_id}"
+        response = await self._request(
+            "POST",
+            f"/api/v1/likes/{user_id}/{track_id}",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
         )
+        result: dict[str, Any] = response.json()
+        return result
 
     async def toggle_dislike(
-        self, user_id: int, track_id: int
+        self,
+        user_id: int,
+        track_id: int,
+        token: str,
     ) -> dict[str, Any]:
         logger.info(
             "backend_toggle_dislike",
             user_id=user_id,
             track_id=track_id,
         )
-        return await self.post(
-            f"/api/v1/dislikes/{user_id}/{track_id}"
+        response = await self._request(
+            "POST",
+            f"/api/v1/dislikes/{user_id}/{track_id}",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
         )
+        result: dict[str, Any] = response.json()
+        return result
 
     async def get_user_profile(
         self, telegram_id: int

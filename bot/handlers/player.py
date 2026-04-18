@@ -136,10 +136,13 @@ async def _resolve_audio(
     client: BackendClient,
     track_id: int,
     token: str,
+    prefetched: dict[int, str] | None = None,
 ) -> tuple[str | None, bool]:
     cached = await get_cached_file_id(track_id)
     if cached:
         return cached, True
+    if prefetched and track_id in prefetched:
+        return prefetched[track_id], False
     try:
         url = await client.get_stream_url(
             track_id, token
@@ -206,6 +209,7 @@ async def _edit_audio_batch(
     session: PlayerSession,
     tracks: list[dict[str, Any]],
     token: str,
+    prefetched: dict[int, str] | None = None,
 ) -> list[int]:
     new_ids: list[int] = []
     for i, track in enumerate(tracks):
@@ -216,7 +220,7 @@ async def _edit_audio_batch(
         )
 
         media_src, is_cached = await _resolve_audio(
-            client, track_id, token
+            client, track_id, token, prefetched
         )
         if not media_src:
             continue
@@ -544,10 +548,14 @@ async def on_player_next(
     await callback.answer("Загрузка...")
     session.touch()
 
+    prefetched_urls: dict[int, str] | None = None
     if session.prefetched_tracks:
         tracks = session.prefetched_tracks
         total = session.prefetched_total
         has_more = session.prefetched_has_more
+        prefetched_urls = (
+            session.prefetched_urls or None
+        )
 
         session.prefetched_tracks = []
         session.prefetched_urls = {}
@@ -589,6 +597,7 @@ async def on_player_next(
             session,
             tracks,
             token,
+            prefetched=prefetched_urls,
         )
 
     session.page += 1
@@ -650,16 +659,17 @@ async def on_player_like(
 
     async with BackendClient() as client:
         try:
-            _, uid = await _get_token(
+            token, uid = await _get_token(
                 client, telegram_id
             )
             result = await client.toggle_like(
                 session.internal_user_id or uid,
                 track_id,
+                token,
             )
             liked = result.get("liked", False)
             await callback.answer(
-                "❤️ Лайк!"
+                "Лайк добавлен"
                 if liked
                 else "Лайк убран"
             )

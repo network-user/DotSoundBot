@@ -5,6 +5,7 @@ from aiogram.types import Document, Message
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
 from bot.keyboards.inline import track_action_keyboard
+from bot.utils.formatting import safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -82,15 +83,24 @@ async def handle_audio(message: Message, bot: Bot) -> None:
                 title=title,
             )
             mini_app_url = (
-                f"{settings.backend_base_url}/mini_app/"
+                f"{settings.mini_app_url}"
                 f"?track_id={track_id}"
+            )
+            safe_title = safe_html(title, 80)
+            safe_artist = safe_html(artist, 60)
+            artist_line = (
+                f"\n👤 {safe_artist}"
+                if safe_artist
+                else ""
             )
             await message.reply(
                 f"✅ Трек загружен!\n\n"
-                f"🎵 <b>{title}</b>"
-                + (f"\n👤 {artist}" if artist else ""),
+                f"🎵 <b>{safe_title}</b>"
+                + artist_line,
                 parse_mode="HTML",
-                reply_markup=track_action_keyboard(track_id, mini_app_url),
+                reply_markup=track_action_keyboard(
+                    track_id, mini_app_url
+                ),
             )
         except BackendError as exc:
             logger.error(
@@ -147,13 +157,17 @@ async def handle_audio_document(
                 track_id=track_id,
             )
             mini_app_url = (
-                f"{settings.backend_base_url}/mini_app/"
+                f"{settings.mini_app_url}"
                 f"?track_id={track_id}"
             )
+            safe_title = safe_html(title, 80)
             await message.reply(
-                f"✅ Трек загружен!\n🎵 <b>{title}</b>",
+                f"✅ Трек загружен!\n🎵 <b>"
+                f"{safe_title}</b>",
                 parse_mode="HTML",
-                reply_markup=track_action_keyboard(track_id, mini_app_url),
+                reply_markup=track_action_keyboard(
+                    track_id, mini_app_url
+                ),
             )
         except BackendError as exc:
             logger.error(

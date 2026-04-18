@@ -30,6 +30,9 @@ async def test_cmd_mystats_success(
     from bot.handlers.stats import cmd_mystats
 
     mock_settings.backend_base_url = "http://test"
+    mock_settings.mini_app_url = (
+        "https://t.me/test_bot/app"
+    )
     client = AsyncMock()
     client.post = AsyncMock(
         return_value={"id": 5}
@@ -68,6 +71,9 @@ async def test_cmd_mystats_backend_error(
     from bot.handlers.stats import cmd_mystats
 
     mock_settings.backend_base_url = "http://test"
+    mock_settings.mini_app_url = (
+        "https://t.me/test_bot/app"
+    )
     client = AsyncMock()
     client.post = AsyncMock(
         side_effect=BackendError(500, "fail")
@@ -98,6 +104,9 @@ async def test_cmd_mystats_with_top_tracks(
     from bot.handlers.stats import cmd_mystats
 
     mock_settings.backend_base_url = "http://test"
+    mock_settings.mini_app_url = (
+        "https://t.me/test_bot/app"
+    )
     client = AsyncMock()
     client.post = AsyncMock(
         return_value={"id": 5}

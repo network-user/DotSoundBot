@@ -1,0 +1,58 @@
+#name: CI
+#
+#on:
+#  push:
+#    branches: [main]
+#  pull_request:
+#    branches: [main]
+#
+#jobs:
+#  bot:
+#    name: Bot (lint + tests)
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          path: DotSoundBot
+#
+#      - name: Check out PrivateCore
+#        uses: actions/checkout@v4
+#        with:
+#          repository: ${{ github.repository_owner }}/DotSoundPrivateCore
+#          token: ${{ secrets.PRIVATE_CORE_TOKEN || github.token }}
+#          path: DotSoundPrivateCore
+#          ref: main
+#
+#      - name: Set up Python 3.12
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: '3.12'
+#
+#      - name: Install poetry
+#        run: pipx install poetry==1.8.3
+#
+#      - name: Install dependencies
+#        working-directory: DotSoundBot
+#        run: poetry install --no-interaction --no-ansi
+#
+#      - name: Ruff
+#        working-directory: DotSoundBot
+#        run: poetry run ruff check bot
+#
+#      - name: Black
+#        working-directory: DotSoundBot
+#        run: poetry run black --check bot
+#
+#      - name: Mypy
+#        working-directory: DotSoundBot
+#        run: poetry run mypy bot
+#        continue-on-error: true
+#
+#      - name: Pytest
+#        working-directory: DotSoundBot
+#        env:
+#          BOT_TOKEN: 'ci:test'
+#          BACKEND_BASE_URL: 'http://localhost:8000'
+#          MINI_APP_URL: 'https://example.com/mini_app/'
+#          INTERNAL_API_SECRET: 'ci-secret'
+#        run: poetry run pytest -q

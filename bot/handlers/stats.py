@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, Message, User
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
 from bot.keyboards.inline import open_player_keyboard
+from bot.utils.formatting import html_escape, safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(
@@ -67,9 +68,10 @@ async def _send_stats(
         total_plays=total_plays,
     )
 
+    safe_first_name = html_escape(user.first_name)
     lines = [
         f"📊 <b>Твоя статистика, "
-        f"{user.first_name}</b>\n",
+        f"{safe_first_name}</b>\n",
         f"🎵 Загружено треков: "
         f"<b>{total_tracks}</b>",
         f"▶️ Всего прослушиваний: "
@@ -79,24 +81,26 @@ async def _send_stats(
     if top_tracks:
         lines.append("\n🏆 <b>Топ треков:</b>")
         for i, track in enumerate(top_tracks, 1):
-            artist = (
+            artist = safe_html(
                 track.get("artist")
-                or "Неизвестный исполнитель"
+                or "Неизвестный исполнитель",
+                40,
             )
             play_count = track.get("play_count", 0)
-            title = track.get("title", "—")
+            title = safe_html(
+                track.get("title", "—"), 60
+            )
             lines.append(
                 f"{i}. {title} — {artist} "
                 f"<i>({play_count} прослушиваний)</i>"
             )
 
-    mini_app_url = (
-        f"{settings.backend_base_url}/mini_app/"
-    )
     await target.answer(
         "\n".join(lines),
         parse_mode="HTML",
-        reply_markup=open_player_keyboard(mini_app_url),
+        reply_markup=open_player_keyboard(
+            settings.mini_app_url
+        ),
     )
 
 

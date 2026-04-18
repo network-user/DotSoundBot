@@ -10,6 +10,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
+from bot.utils.formatting import safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -28,7 +29,7 @@ def _track_keyboard(track_id: int) -> InlineKeyboardMarkup:
     builder.button(
         text="▶️ Слушать",
         url=(
-            f"{settings.backend_base_url}/mini_app/"
+            f"{settings.mini_app_url}"
             f"?track_id={track_id}"
         ),
     )
@@ -75,30 +76,41 @@ async def inline_search(query: InlineQuery) -> None:
             )
             for track in tracks:
                 tid = track["id"]
-                artist = (
+                artist_raw = (
                     track.get("artist")
                     or "Неизвестный исполнитель"
                 )
-                title = track.get("title", "Без названия")
-                play_count = track.get("play_count", 0)
+                title_raw = track.get(
+                    "title", "Без названия"
+                )
+                play_count = track.get(
+                    "play_count", 0
+                )
+                safe_title = safe_html(title_raw, 80)
+                safe_artist = safe_html(
+                    artist_raw, 60
+                )
                 results.append(
                     InlineQueryResultArticle(
                         id=str(tid),
-                        title=title,
+                        title=title_raw,
                         description=(
-                            f"{artist} · "
+                            f"{artist_raw} · "
                             f"{play_count} прослушиваний"
                         ),
                         input_message_content=(
                             InputTextMessageContent(
                                 message_text=(
-                                    f"🎵 <b>{title}</b>\n"
-                                    f"👤 {artist}"
+                                    f"🎵 <b>{safe_title}"
+                                    f"</b>\n"
+                                    f"👤 {safe_artist}"
                                 ),
                                 parse_mode="HTML",
                             )
                         ),
-                        reply_markup=_track_keyboard(tid),
+                        reply_markup=_track_keyboard(
+                            tid
+                        ),
                     )
                 )
         except BackendError as exc:

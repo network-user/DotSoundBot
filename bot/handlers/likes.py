@@ -3,11 +3,38 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from bot.api.client import BackendClient, BackendError
+from bot.config import settings
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(
     __name__
 )
+
+
+async def _resolve_internal_identity(
+    client: BackendClient, telegram_id: int
+) -> tuple[str, int] | None:
+    secret = settings.internal_api_secret
+    if not secret:
+        logger.error(
+            "internal_api_secret_missing",
+            telegram_id=telegram_id,
+        )
+        return None
+    try:
+        data = await client.get_internal_token(
+            telegram_id, secret
+        )
+    except BackendError as exc:
+        logger.error(
+            "internal_token_failed",
+            status=exc.status_code,
+            telegram_id=telegram_id,
+        )
+        return None
+    token: str = data["access_token"]
+    internal_id: int = data["user_id"]
+    return token, internal_id
 
 
 @router.callback_query(F.data.startswith("like_"))
@@ -16,7 +43,7 @@ async def on_like(callback: CallbackQuery) -> None:
         await callback.answer()
         return
 
-    user_id = callback.from_user.id
+    telegram_id = callback.from_user.id
     try:
         track_id = int(
             callback.data.split("_", 1)[1]
@@ -27,22 +54,33 @@ async def on_like(callback: CallbackQuery) -> None:
 
     structlog.contextvars.bind_contextvars(
         handler="on_like",
-        user_id=user_id,
+        telegram_id=telegram_id,
         track_id=track_id,
     )
     logger.info("like_callback_received")
 
     async with BackendClient() as client:
+        identity = await _resolve_internal_identity(
+            client, telegram_id
+        )
+        if identity is None:
+            await callback.answer(
+                "Авторизация не удалась.",
+                show_alert=True,
+            )
+            return
+        token, internal_user_id = identity
+
         try:
             data = await client.toggle_like(
-                user_id, track_id
+                internal_user_id, track_id, token
             )
             liked: bool = data.get("liked", False)
             logger.info("like_toggled", liked=liked)
             text = (
-                "❤️ Добавлено в лайки!"
+                "Добавлено в лайки"
                 if liked
-                else "💔 Убрано из лайков"
+                else "Убрано из лайков"
             )
             await callback.answer(
                 text, show_alert=False
@@ -66,7 +104,7 @@ async def on_dislike(
         await callback.answer()
         return
 
-    user_id = callback.from_user.id
+    telegram_id = callback.from_user.id
     try:
         track_id = int(
             callback.data.split("_", 1)[1]
@@ -77,24 +115,35 @@ async def on_dislike(
 
     structlog.contextvars.bind_contextvars(
         handler="on_dislike",
-        user_id=user_id,
+        telegram_id=telegram_id,
         track_id=track_id,
     )
     logger.info("dislike_callback_received")
 
     async with BackendClient() as client:
+        identity = await _resolve_internal_identity(
+            client, telegram_id
+        )
+        if identity is None:
+            await callback.answer(
+                "Авторизация не удалась.",
+                show_alert=True,
+            )
+            return
+        token, internal_user_id = identity
+
         try:
             data = await client.toggle_dislike(
-                user_id, track_id
+                internal_user_id, track_id, token
             )
             disliked: bool = data.get("disliked", False)
             logger.info(
                 "dislike_toggled", disliked=disliked
             )
             text = (
-                "👎 Дизлайк поставлен"
+                "Дизлайк поставлен"
                 if disliked
-                else "👌 Дизлайк убран"
+                else "Дизлайк убран"
             )
             await callback.answer(
                 text, show_alert=False

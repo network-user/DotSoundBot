@@ -154,9 +154,12 @@ async def test_toggle_like(
         return_value=resp
     )
 
-    result = await client.toggle_like(1, 10)
+    result = await client.toggle_like(1, 10, "tok")
 
     assert result == IsPartialDict(liked=True)
+    call = client._client.request.call_args
+    headers = call.kwargs.get("headers") or {}
+    assert headers.get("Authorization") == "Bearer tok"
 
 
 async def test_toggle_dislike(
@@ -168,9 +171,14 @@ async def test_toggle_dislike(
         return_value=resp
     )
 
-    result = await client.toggle_dislike(1, 10)
+    result = await client.toggle_dislike(
+        1, 10, "tok"
+    )
 
     assert result == IsPartialDict(disliked=True)
+    call = client._client.request.call_args
+    headers = call.kwargs.get("headers") or {}
+    assert headers.get("Authorization") == "Bearer tok"
 
 
 # ------------------------------------------------------------------

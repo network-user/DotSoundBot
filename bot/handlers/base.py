@@ -13,6 +13,7 @@ from bot.keyboards.inline import (
     playlists_keyboard,
     profile_kb,
 )
+from bot.utils.formatting import html_escape, safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = (
@@ -105,9 +106,10 @@ _ABOUT_TEXTS = {
 }
 
 
-def _main_menu_text(name: str) -> str:
+def _main_menu_text(name: str | None) -> str:
+    safe_name = html_escape(name or "друг")
     return (
-        f"Привет, <b>{name}</b>! 👋\n\n"
+        f"Привет, <b>{safe_name}</b>! 👋\n\n"
         "Добро пожаловать в <b>.sound</b> — "
         "музыка без рекламы.\n"
         "Слушай. Делись. Открывай."
@@ -226,18 +228,20 @@ async def on_profile(
             stats = await client.get_user_stats(
                 profile["id"]
             )
-            name = (
+            display_name = (
                 (profile.get("first_name") or "")
                 + " "
                 + (profile.get("last_name") or "")
-            ).strip() or user.first_name
+            ).strip() or (user.first_name or "")
+            safe_name = html_escape(display_name)
+            username = profile.get("username")
             username_str = (
-                f"@{profile['username']}\n"
-                if profile.get("username")
+                f"@{html_escape(username)}\n"
+                if username
                 else ""
             )
             text = (
-                f"👤 <b>{name}</b>\n"
+                f"👤 <b>{safe_name}</b>\n"
                 f"{username_str}\n"
                 f"🎵 Треков: "
                 f"<b>{stats.get('total_tracks', 0)}"
@@ -302,13 +306,17 @@ async def on_login_history(
                 for i, entry in enumerate(
                     history, 1
                 ):
-                    dt = entry.get(
-                        "created_at", ""
-                    )[:16].replace("T", ", ")
-                    device = entry.get(
-                        "device", "—"
+                    dt = html_escape(
+                        entry.get(
+                            "created_at", ""
+                        )[:16].replace("T", ", ")
                     )
-                    ip = entry.get("ip", "—")
+                    device = html_escape(
+                        entry.get("device", "—")
+                    )
+                    ip = html_escape(
+                        entry.get("ip", "—")
+                    )
                     lines.append(
                         f"{i}. {dt} — "
                         f"{device} — {ip}"
@@ -365,13 +373,14 @@ async def cmd_profile(message: Message) -> None:
             stats = await client.get_user_stats(
                 profile["id"]
             )
-            name = (
+            display_name = (
                 (profile.get("first_name") or "")
                 + " "
                 + (profile.get("last_name") or "")
-            ).strip() or user.first_name
+            ).strip() or (user.first_name or "")
+            safe_name = html_escape(display_name)
             await message.answer(
-                f"👤 <b>{name}</b>\n\n"
+                f"👤 <b>{safe_name}</b>\n\n"
                 f"🎵 Треков: "
                 f"<b>{stats.get('total_tracks', 0)}"
                 f"</b>\n"
@@ -413,7 +422,7 @@ async def cmd_playlists(
                 )
                 return
             names = "\n".join(
-                f"▤ <b>{pl['name']}</b>"
+                f"▤ <b>{safe_html(pl.get('name'), 60)}</b>"
                 for pl in pls[:10]
             )
             await message.answer(

@@ -3,7 +3,12 @@ from typing import Any, Awaitable, Callable
 
 import structlog
 from aiogram import BaseMiddleware
-from aiogram.types import Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    Message,
+    TelegramObject,
+)
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(
     __name__
@@ -12,12 +17,21 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(
 
 _CLEANUP_INTERVAL = 60.0
 _ENTRY_TTL = 120.0
+_THROTTLED_HINT = "Слишком быстро. Подожди секунду."
 
 
 class ThrottlingMiddleware(BaseMiddleware):
+    """Per-user rate limiting for messages, callbacks and inline queries.
+
+    Sliding-window suppression: if the same user fires events
+    faster than ``rate_limit`` seconds, subsequent events are
+    silently answered (callback) or hint-replied (message/inline)
+    instead of running the handler.
+    """
+
     def __init__(self, rate_limit: float = 0.7) -> None:
         self._rate_limit = rate_limit
-        self._last_message: dict[int, float] = {}
+        self._last_event: dict[int, float] = {}
         self._last_cleanup: float = 0.0
 
     def _maybe_cleanup(self, now: float) -> None:
@@ -26,33 +40,69 @@ class ThrottlingMiddleware(BaseMiddleware):
         self._last_cleanup = now
         stale = [
             uid
-            for uid, ts in self._last_message.items()
+            for uid, ts in self._last_event.items()
             if now - ts > _ENTRY_TTL
         ]
         for uid in stale:
-            del self._last_message[uid]
+            del self._last_event[uid]
+
+    @staticmethod
+    def _user_id(event: TelegramObject) -> int | None:
+        for attr in ("from_user", "user"):
+            user = getattr(event, attr, None)
+            if user is not None and hasattr(user, "id"):
+                return int(user.id)
+        return None
+
+    async def _notify_throttled(
+        self, event: TelegramObject
+    ) -> None:
+        try:
+            if isinstance(event, CallbackQuery):
+                await event.answer(
+                    _THROTTLED_HINT, show_alert=False
+                )
+            elif isinstance(event, InlineQuery):
+                await event.answer(
+                    [],
+                    cache_time=1,
+                    is_personal=True,
+                    switch_pm_text=_THROTTLED_HINT,
+                    switch_pm_parameter="throttled",
+                )
+            elif isinstance(event, Message):
+                await event.answer(_THROTTLED_HINT)
+        except Exception:
+            logger.debug(
+                "throttle_notify_failed",
+                event_type=type(event).__name__,
+            )
 
     async def __call__(
         self,
         handler: Callable[
-            [Message, dict[str, Any]], Awaitable[Any]
+            [TelegramObject, dict[str, Any]],
+            Awaitable[Any],
         ],
-        event: Message,
+        event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        if not event.from_user:
+        user_id = self._user_id(event)
+        if user_id is None:
             return await handler(event, data)
 
-        user_id = event.from_user.id
         now = time.monotonic()
         self._maybe_cleanup(now)
-        last = self._last_message.get(user_id, 0.0)
+        last = self._last_event.get(user_id, 0.0)
 
         if now - last < self._rate_limit:
             logger.debug(
-                "throttled", user_id=user_id
+                "throttled",
+                user_id=user_id,
+                event_type=type(event).__name__,
             )
+            await self._notify_throttled(event)
             return None
 
-        self._last_message[user_id] = now
+        self._last_event[user_id] = now
         return await handler(event, data)

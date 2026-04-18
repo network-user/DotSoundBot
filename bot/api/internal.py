@@ -13,12 +13,22 @@ from dotsound_private_core.contracts import (
 )
 
 from bot.config import settings
+from bot.utils.formatting import html_escape
 
 logger: structlog.stdlib.BoundLogger = (
     structlog.get_logger(__name__)
 )
 
 _MAX_DOWNLOAD_SIZE = 20 * 1024 * 1024
+
+
+def _error_response(
+    code: str, status: int
+) -> web.Response:
+    """Generic error response without leaking exception text."""
+    return web.json_response(
+        {"error": code}, status=status
+    )
 
 
 def _check_secret(request: web.Request) -> bool:
@@ -58,14 +68,13 @@ async def handle_profile_audios(
                 user_id=user_id, limit=100
             )
         )
-    except Exception as exc:
-        logger.error(
+    except Exception:
+        logger.exception(
             "profile_audios_failed",
             user_id=user_id,
-            error=str(exc),
         )
-        return web.json_response(
-            {"error": str(exc)}, status=500
+        return _error_response(
+            "profile_audios_failed", 500
         )
 
     audios: list[dict[str, Any]] = []
@@ -151,14 +160,13 @@ async def handle_download_audio(
                 "Content-Length": str(len(data)),
             },
         )
-    except Exception as exc:
-        logger.error(
+    except Exception:
+        logger.exception(
             "audio_download_failed",
             file_id=file_id[:20],
-            error=str(exc),
         )
-        return web.json_response(
-            {"error": str(exc)}, status=500
+        return _error_response(
+            "audio_download_failed", 500
         )
 
 
@@ -187,12 +195,13 @@ async def handle_send_auth_code(
 
     bot: Bot = request.app["bot"]
 
+    safe_code = html_escape(code)
     try:
         await bot.send_message(
             chat_id=telegram_id,
             text=(
                 f"🔐 <b>Код входа в .sound</b>\n\n"
-                f"<code>{code}</code>\n\n"
+                f"<code>{safe_code}</code>\n\n"
                 f"Действует 5 минут. "
                 f"Никому не сообщайте этот код."
             ),
@@ -203,14 +212,13 @@ async def handle_send_auth_code(
             telegram_id=telegram_id,
         )
         return web.json_response({"sent": True})
-    except Exception as exc:
-        logger.error(
+    except Exception:
+        logger.exception(
             "auth_code_send_failed",
             telegram_id=telegram_id,
-            error=str(exc),
         )
-        return web.json_response(
-            {"error": str(exc)}, status=500
+        return _error_response(
+            "auth_code_send_failed", 500
         )
 
 
@@ -257,15 +265,18 @@ async def handle_send_login_notification(
         ]
     )
 
+    safe_time = html_escape(time_str)
+    safe_ip = html_escape(ip)
+    safe_device = html_escape(device)
     try:
         await bot.send_message(
             chat_id=telegram_id,
             text=(
                 "✅ <b>Выполнен вход в .sound web"
                 "</b>\n\n"
-                f"🕐 Время: {time_str}\n"
-                f"🌐 IP: {ip}\n"
-                f"📱 Устройство: {device}\n\n"
+                f"🕐 Время: {safe_time}\n"
+                f"🌐 IP: {safe_ip}\n"
+                f"📱 Устройство: {safe_device}\n\n"
                 "<i>Если это были не вы, "
                 "немедленно смените пароль "
                 "или свяжитесь с поддержкой."
@@ -279,14 +290,13 @@ async def handle_send_login_notification(
             telegram_id=telegram_id,
         )
         return web.json_response({"sent": True})
-    except Exception as exc:
-        logger.error(
+    except Exception:
+        logger.exception(
             "login_notification_failed",
             telegram_id=telegram_id,
-            error=str(exc),
         )
-        return web.json_response(
-            {"error": str(exc)}, status=500
+        return _error_response(
+            "login_notification_failed", 500
         )
 
 

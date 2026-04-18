@@ -5,7 +5,13 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.types import MenuButtonWebApp, WebAppInfo
+from aiogram.types import (
+    CallbackQuery,
+    ErrorEvent,
+    MenuButtonWebApp,
+    Message,
+    WebAppInfo,
+)
 
 from bot.api.internal import create_internal_app
 from bot.config import settings
@@ -28,6 +34,37 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(
 )
 
 
+_FALLBACK_TEXT = (
+    "Что-то пошло не так. "
+    "Попробуй ещё раз чуть позже."
+)
+
+
+async def _global_error_handler(
+    event: ErrorEvent,
+) -> None:
+    update = event.update
+    logger.exception(
+        "unhandled_handler_error",
+        update_type=type(update).__name__,
+        exception=type(event.exception).__name__,
+    )
+    target = (
+        update.callback_query
+        or update.inline_query
+        or update.message
+    )
+    try:
+        if isinstance(target, CallbackQuery):
+            await target.answer(
+                _FALLBACK_TEXT, show_alert=True
+            )
+        elif isinstance(target, Message):
+            await target.answer(_FALLBACK_TEXT)
+    except Exception:
+        logger.debug("error_notify_failed")
+
+
 async def main() -> None:
     configure_logging(
         settings.log_level,
@@ -48,9 +85,13 @@ async def main() -> None:
     dp = Dispatcher()
 
     dp.update.outer_middleware(LoggingMiddleware())
-    dp.message.middleware(
-        ThrottlingMiddleware(rate_limit=0.7)
+    throttle = ThrottlingMiddleware(
+        rate_limit=settings.throttle_rate_limit
     )
+    dp.message.middleware(throttle)
+    dp.callback_query.middleware(throttle)
+    dp.inline_query.middleware(throttle)
+    dp.errors.register(_global_error_handler)
 
     dp.include_router(web_auth.router)
     dp.include_router(likes.router)
@@ -79,12 +120,13 @@ async def main() -> None:
     await runner.setup()
     site = web.TCPSite(
         runner,
-        "0.0.0.0",
+        settings.internal_api_host,
         settings.internal_api_port,
     )
     await site.start()
     logger.info(
         "internal_api_started",
+        host=settings.internal_api_host,
         port=settings.internal_api_port,
     )
 

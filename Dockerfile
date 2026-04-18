@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -13,12 +13,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
+# IMPORTANT: build context must be the parent directory that
+# contains BOTH DotSoundBot and DotSoundPrivateCore. Example:
+#   docker build -f DotSoundBot/Dockerfile -t dotsoundbot .
+# Or in docker-compose:
+#   build:
+#     context: ..
+#     dockerfile: DotSoundBot/Dockerfile
+
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock ./
+COPY DotSoundPrivateCore /private_core
+COPY DotSoundBot/pyproject.toml DotSoundBot/poetry.lock ./
+
+# Re-point the relative path dependency to the copied location
+RUN sed -i 's|path = "../DotSoundPrivateCore"|path = "/private_core"|' \
+    pyproject.toml
+
 RUN poetry install --no-interaction --no-ansi --no-root --only main
 
-COPY . .
+COPY DotSoundBot/ .
+
 RUN poetry install --no-interaction --no-ansi --only main
 
 CMD ["python", "main.py"]
