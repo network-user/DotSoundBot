@@ -42,6 +42,15 @@ handlers/  →  bot/api/client.py  →  [DotSoundBackend REST API]
 - `bot/api/client.py` — единственный канал к бэкенду. Никогда не инстанциировать `httpx` напрямую в хендлерах.
 - `keyboards/` — фабричные функции, возвращающие `InlineKeyboardMarkup`. Никакой логики.
 - `middlewares/` — cross-cutting concerns (логирование, rate limiting в будущем).
+- `bot/api/internal.py` — приватный HTTP-API для backend↔bot:
+  - `POST /internal/profile-audios/{user_id}` — список треков юзера
+  - `POST /internal/download-audio` — скачать аудио по file_id
+  - `POST /internal/send-auth-code` — отправить код входа
+  - `POST /internal/send-login-notification` — уведомление о входе
+  - `POST /internal/admin-alert` — алерты админ-панели в Telegram
+    (chat_id allowlist через `ADMIN_ALERT_CHAT_ID_ALLOWLIST`)
+  Все эти роуты требуют `X-Internal-Secret` header, контракт
+  endpoints в `dotsound_private_core.contracts.internal_api`.
 
 ## Структура репозитория
 ```
