@@ -5,9 +5,20 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 dist/
+build/
 *.egg-info/
 .idea/
 .vscode/
+
+# Coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Misc local caches / artifacts
+*.log
+*.bak
 
 # Claude Code internal files
 .claude/

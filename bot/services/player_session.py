@@ -75,15 +75,5 @@ class PlayerSessionManager:
     def remove(self, user_id: int) -> None:
         self._sessions.pop(user_id, None)
 
-    def cleanup(self) -> int:
-        expired = [
-            uid
-            for uid, s in self._sessions.items()
-            if s.expired
-        ]
-        for uid in expired:
-            del self._sessions[uid]
-        return len(expired)
-
 
 player_sessions = PlayerSessionManager()

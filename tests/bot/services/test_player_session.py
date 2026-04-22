@@ -58,23 +58,6 @@ def test_remove_deletes_session() -> None:
     assert mgr.get(1) is None
 
 
-def test_cleanup_removes_expired() -> None:
-    mgr = PlayerSessionManager()
-    s1 = mgr.create(
-        chat_id=100, user_id=1, source="my"
-    )
-    mgr.create(
-        chat_id=200, user_id=2, source="feed"
-    )
-    s1.last_active = time.time() - 2000
-
-    removed = mgr.cleanup()
-
-    assert removed == 1
-    assert mgr.get(1) is None
-    assert mgr.get(2) is not None
-
-
 def test_touch_updates_last_active() -> None:
     session = PlayerSession(
         chat_id=1, user_id=1, source="my"

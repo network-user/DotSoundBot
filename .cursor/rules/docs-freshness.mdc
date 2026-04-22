@@ -1,0 +1,36 @@
+---
+description: Remind agent to update relevant docs when touching mapped code areas
+alwaysApply: true
+---
+
+# Docs freshness
+
+When editing code in the mapped areas below, also review and (if needed)
+update the listed docs in the same change. Do not update docs
+proactively when no corresponding code changes.
+
+## Code area → docs map (Bot)
+
+- `bot/handlers/web_auth.py`, `bot/api/internal.py`, anything importing
+  `dotsound_private_core` policy functions →
+  `docs/ai-boundary-policy.md`, `docs/private-boundary-inventory.md`,
+  `docs/private-core-dependency-policy.md`.
+- `bot/api/client.py`, `bot/handlers/*` that call Backend endpoints →
+  `docs/private-core-dependency-policy.md` when new private imports are
+  added or removed.
+- `bot/main.py` dispatcher wiring, new handlers/middlewares →
+  re-read the layout diagram in `README.md` (Bot) to keep it honest.
+
+## Cross-repo variants
+
+Files with the same name in Backend and PrivateCore
+(`docs/ai-boundary-policy.md`, `docs/private-boundary-inventory.md`,
+`docs/private-core-dependency-policy.md`, `docs/public-release-cut.md`)
+are **per-repo variants**, not byte-copies. When editing this repo's
+variant, check whether the change affects scope claims in Backend or
+PrivateCore variants and update them if it does.
+
+## Hard rule
+
+Never put PrivateCore internals (provider names, model names, pipeline
+stages, scoring weights) into any Bot doc. Use opaque language.

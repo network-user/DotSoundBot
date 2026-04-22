@@ -739,7 +739,7 @@ pydantic = ["pydantic (>=2.4.2)"]
 
 [[package]]
 name = "dotsound-private-core"
-version = "0.2.0"
+version = "0.3.1"
 description = "Private business logic for DotSound services"
 optional = false
 python-versions = "^3.12"
@@ -753,6 +753,8 @@ requests = "^2.31"
 
 [package.extras]
 ml = ["faster-whisper (>=1.2,<2.0)", "lyricsgenius (>=3.7,<4.0)", "rapidfuzz (>=3.0,<4.0)"]
+proxies = ["pysocks (>=1.7,<2.0)"]
+scanners = ["yt-dlp (>=2025.1,<2026.0)"]
 
 [package.source]
 type = "directory"
@@ -2158,4 +2160,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "32cef47fcb749772d805a13596f8ed6d53ad5a803af94702d963adb6ef10c6d9"
+content-hash = "bc3973b3814993aaaf3e5128cec76b0781568c9f0abec38d989d873d5c82ed39"
