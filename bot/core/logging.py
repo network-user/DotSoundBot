@@ -1,5 +1,7 @@
 import logging
+import os
 import sys
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -15,6 +17,30 @@ _SENSITIVE_KEYS = frozenset({
 })
 
 _REDACT_ENABLED = False
+
+
+def _attach_dev_file_log(level: int, filename: str) -> None:
+    raw = (os.environ.get("DOTSOUND_DEV_LOG_DIR") or "").strip()
+    if not raw:
+        return
+    try:
+        log_dir = Path(
+            os.path.expanduser(os.path.expandvars(raw))
+        ).resolve()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        path = (log_dir / filename).resolve()
+        base_s = str(path)
+        root = logging.getLogger()
+        for h in root.handlers:
+            bfn = getattr(h, "baseFilename", None)
+            if bfn and str(bfn) == base_s:
+                return
+        fh = logging.FileHandler(path, encoding="utf-8")
+        fh.setLevel(level)
+        fh.setFormatter(logging.Formatter("%(message)s"))
+        root.addHandler(fh)
+    except OSError:
+        return
 
 
 def _mask_value(key: str, value: Any) -> Any:
@@ -94,6 +120,7 @@ def configure_logging(
         level=level,
         format="%(message)s",
     )
+    _attach_dev_file_log(level, "bot.log")
 
     for noisy in ("aiogram", "httpx", "httpcore"):
         logging.getLogger(noisy).setLevel(
