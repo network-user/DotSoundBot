@@ -8,7 +8,7 @@
 #
 #jobs:
 #  bot:
-#    name: Bot (lint + tests)
+#    name: Bot (lint + tests + coverage)
 #    runs-on: ubuntu-latest
 #    steps:
 #      - uses: actions/checkout@v4
@@ -26,7 +26,7 @@
 #      - name: Set up Python 3.12
 #        uses: actions/setup-python@v5
 #        with:
-#          python-version: '3.12'
+#          python-version: "3.12"
 #
 #      - name: Install poetry
 #        run: pipx install poetry==1.8.3
@@ -48,11 +48,19 @@
 #        run: poetry run mypy bot
 #        continue-on-error: true
 #
-#      - name: Pytest
+#      - name: Pytest with coverage
 #        working-directory: DotSoundBot
 #        env:
-#          BOT_TOKEN: 'ci:test'
-#          BACKEND_BASE_URL: 'http://localhost:8000'
-#          MINI_APP_URL: 'https://example.com/mini_app/'
-#          INTERNAL_API_SECRET: 'ci-secret'
-#        run: poetry run pytest -q
+#          BOT_TOKEN: "ci:test"
+#          BACKEND_BASE_URL: "http://localhost:8000"
+#          MINI_APP_URL: "https://example.com/mini_app/"
+#          INTERNAL_API_SECRET: "ci-secret"
+#        run: |
+#          poetry run pytest -q --cov=bot --cov-report=term-missing --cov-report=xml
+#
+#      - name: Upload coverage.xml
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: coverage-bot
+#          path: DotSoundBot/coverage.xml
+#          if-no-files-found: warn

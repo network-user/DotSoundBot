@@ -47,6 +47,11 @@ ignore_missing_imports = false
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "s3: tests requiring S3/MinIO",
+    "redis: tests requiring Redis",
+    "slow: slow integration tests",
+]
 
 [tool.coverage.run]
 branch = true
@@ -54,6 +59,7 @@ source = ["bot"]
 
 [tool.coverage.report]
 show_missing = true
+fail_under = 80
 
 [tool.coverage.xml]
 output = "coverage.xml"
