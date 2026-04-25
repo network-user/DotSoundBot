@@ -20,6 +20,14 @@ def main_menu_kb() -> InlineKeyboardMarkup:
         callback_data="menu:player",
     )
     builder.button(
+        text="📅 Плейлист дня",
+        callback_data="menu:daily_playlist",
+    )
+    builder.button(
+        text="📆 Плейлист недели",
+        callback_data="menu:weekly_playlist",
+    )
+    builder.button(
         text="👤 Профиль",
         callback_data="menu:profile",
     )
@@ -31,7 +39,30 @@ def main_menu_kb() -> InlineKeyboardMarkup:
         text="🔐 История входов",
         callback_data="menu:login_history",
     )
-    builder.adjust(1, 1, 2, 1)
+    builder.adjust(1, 1, 2, 2, 1)
+    return builder.as_markup()
+
+
+def daily_playlist_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🔄 Обновить (debug)",
+        callback_data="rec:daily:refresh",
+    )
+    builder.button(
+        text="← Назад в меню",
+        callback_data="menu:main",
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def weekly_playlist_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="← Назад в меню",
+        callback_data="menu:main",
+    )
     return builder.as_markup()
 
 

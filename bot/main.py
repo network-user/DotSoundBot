@@ -23,6 +23,7 @@ from bot.handlers import (
     likes,
     player,
     playlists,
+    recommendations,
     stats,
     web_auth,
 )
@@ -99,6 +100,7 @@ async def main() -> None:
     dp.include_router(stats.router)
     dp.include_router(playlists.router)
     dp.include_router(player.router)
+    dp.include_router(recommendations.router)
     dp.include_router(base.router)
     dp.include_router(inline_mode.router)
 

@@ -324,6 +324,50 @@ class BackendClient:
             params=params,
         )
 
+    async def get_daily_playlist(
+        self, telegram_id: int
+    ) -> dict[str, Any]:
+        token = await self._get_token_for_user(
+            telegram_id
+        )
+        response = await self._request(
+            "GET",
+            "/api/v1/recommendations/daily-playlist",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        return response.json()
+
+    async def get_weekly_playlist(
+        self, telegram_id: int
+    ) -> dict[str, Any]:
+        token = await self._get_token_for_user(
+            telegram_id
+        )
+        response = await self._request(
+            "GET",
+            "/api/v1/recommendations/weekly-playlist",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        return response.json()
+
+    async def refresh_daily_playlist(
+        self, telegram_id: int
+    ) -> None:
+        token = await self._get_token_for_user(
+            telegram_id
+        )
+        await self._request(
+            "POST",
+            "/api/v1/recommendations/daily-playlist/refresh",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+
     async def close(self) -> None:
         await self._client.aclose()
 
