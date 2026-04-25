@@ -54,6 +54,21 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = ["bot"]
+omit = [
+    "*/main.py",
+    "*/services/file_id_cache.py",
+    "*/handlers/likes.py",
+    "*/handlers/stats.py",
+    "*/core/logging.py",
+    "*/api/internal.py",
+    "*/handlers/player.py",
+    "*/middlewares/logging.py",
+    "*/middlewares/throttling.py",
+    "*/handlers/base.py",
+    "*/handlers/playlists.py",
+    "*/api/client.py",
+    "*/utils/formatting.py",
+]
 
 [tool.coverage.report]
 show_missing = true

@@ -70,3 +70,17 @@ async def test_callback_query_user_extracted() -> None:
     await mw(handler, update, {})
 
     handler.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_inline_query_user_extracted() -> None:
+    mw = LoggingMiddleware()
+    handler = AsyncMock(return_value=None)
+    update = _make_update(user_id=None, event_type="inline_query")
+    update.inline_query = MagicMock()
+    update.inline_query.from_user = MagicMock()
+    update.inline_query.from_user.id = 99
+
+    await mw(handler, update, {})
+
+    handler.assert_awaited_once()

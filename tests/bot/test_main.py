@@ -5,6 +5,7 @@ from unittest.mock import (
 )
 
 import pytest
+from aiogram.types import CallbackQuery
 
 pytestmark = pytest.mark.anyio
 
@@ -193,3 +194,21 @@ async def test_main_debug_mode_no_json(
     mock_configure.assert_called_once_with(
         "DEBUG", redact=False, json_output=False
     )
+
+
+async def test_global_error_handler_callback_query() -> None:
+    from bot.main import _global_error_handler
+
+    callback = MagicMock(spec=CallbackQuery)
+    callback.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = callback
+    update.inline_query = None
+    update.message = None
+    event = MagicMock()
+    event.update = update
+    event.exception = RuntimeError("x")
+
+    await _global_error_handler(event)
+
+    callback.answer.assert_awaited_once()

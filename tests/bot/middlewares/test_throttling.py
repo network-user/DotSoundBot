@@ -2,6 +2,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from aiogram.types import CallbackQuery, InlineQuery
 
 from bot.middlewares.throttling import (
     ThrottlingMiddleware,
@@ -96,3 +97,21 @@ async def test_cleanup_removes_stale() -> None:
         await mw(handler, event2, {})
 
     assert 42 not in mw._last_event
+
+
+@pytest.mark.anyio
+async def test_notify_throttled_callback() -> None:
+    mw = ThrottlingMiddleware()
+    cb = MagicMock(spec=CallbackQuery)
+    cb.answer = AsyncMock()
+    await mw._notify_throttled(cb)
+    cb.answer.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_notify_throttled_inline() -> None:
+    mw = ThrottlingMiddleware()
+    iq = MagicMock(spec=InlineQuery)
+    iq.answer = AsyncMock()
+    await mw._notify_throttled(iq)
+    iq.answer.assert_awaited_once()

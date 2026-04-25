@@ -554,6 +554,8 @@ async def test_on_player_menu() -> None:
     "bot.handlers.player.format_player_message",
     return_value="player_msg",
 )
+@patch("bot.handlers.player.set_cached_file_id", new_callable=AsyncMock)
+@patch("bot.handlers.player.get_cached_file_id", new_callable=AsyncMock)
 @patch("bot.handlers.player.player_control_kb")
 @patch("bot.handlers.player._get_token")
 @patch("bot.handlers.player.player_sessions")
@@ -563,6 +565,8 @@ async def test_on_player_source_success(
     mock_sessions: MagicMock,
     mock_get_token: AsyncMock,
     mock_kb: MagicMock,
+    _mock_set_cached_file_id: AsyncMock,
+    mock_get_cached_file_id: AsyncMock,
     mock_fmt: MagicMock,
     mock_prefetch: MagicMock,
 ) -> None:
@@ -585,6 +589,7 @@ async def test_on_player_source_success(
     mock_cls.return_value.__aexit__ = AsyncMock(
         return_value=False
     )
+    mock_get_cached_file_id.return_value = None
 
     mock_sessions.get.return_value = None
     session = PlayerSession(

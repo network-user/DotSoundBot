@@ -139,3 +139,31 @@ async def test_cmd_mystats_with_top_tracks(
     text = msg.answer.call_args[0][0]
     assert "Hit" in text
     assert "Star" in text
+
+
+@pytest.mark.anyio
+async def test_cmd_mystats_without_from_user_noop() -> None:
+    from bot.handlers.stats import cmd_mystats
+
+    msg = AsyncMock()
+    msg.from_user = None
+    msg.answer = AsyncMock()
+
+    await cmd_mystats(msg)
+
+    msg.answer.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_on_my_stats_without_message_answers_only() -> None:
+    from bot.handlers.stats import on_my_stats
+
+    callback = AsyncMock()
+    callback.from_user = MagicMock()
+    callback.from_user.id = 42
+    callback.message = None
+    callback.answer = AsyncMock()
+
+    await on_my_stats(callback)
+
+    callback.answer.assert_awaited_once()
