@@ -103,6 +103,9 @@ async def test_cleanup_removes_stale() -> None:
 async def test_notify_throttled_callback() -> None:
     mw = ThrottlingMiddleware()
     cb = MagicMock(spec=CallbackQuery)
+    cb.data = "x"
+    cb.from_user = MagicMock()
+    cb.from_user.language_code = "ru"
     cb.answer = AsyncMock()
     await mw._notify_throttled(cb)
     cb.answer.assert_awaited_once()
@@ -112,6 +115,9 @@ async def test_notify_throttled_callback() -> None:
 async def test_notify_throttled_inline() -> None:
     mw = ThrottlingMiddleware()
     iq = MagicMock(spec=InlineQuery)
+    iq.query = "q"
+    iq.from_user = MagicMock()
+    iq.from_user.language_code = "ru"
     iq.answer = AsyncMock()
     await mw._notify_throttled(iq)
     iq.answer.assert_awaited_once()

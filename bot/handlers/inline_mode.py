@@ -10,24 +10,27 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 from bot.utils.formatting import safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-def _track_keyboard(track_id: int) -> InlineKeyboardMarkup:
+def _track_keyboard(
+    track_id: int, lang: str
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="❤️ Лайк",
+        text=tr("inline_mode.like", lang),
         callback_data=f"like_{track_id}",
     )
     builder.button(
-        text="💔 Дизлайк",
+        text=tr("inline_mode.dislike", lang),
         callback_data=f"dislike_{track_id}",
     )
     builder.button(
-        text="▶️ Слушать",
+        text=tr("inline_mode.listen", lang),
         url=(
             f"{settings.mini_app_url}"
             f"?track_id={track_id}"
@@ -43,6 +46,11 @@ async def inline_search(query: InlineQuery) -> None:
     user_id = (
         query.from_user.id if query.from_user else None
     )
+    qlang = resolve_lang(
+        query.from_user.language_code
+        if query.from_user
+        else None
+    )
 
     structlog.contextvars.bind_contextvars(
         handler="inline_search",
@@ -55,8 +63,8 @@ async def inline_search(query: InlineQuery) -> None:
         await query.answer(
             results=[],
             cache_time=1,
-            switch_pm_text=(
-                "Введите название трека или исполнителя"
+            switch_pm_text=tr(
+                "inline_mode.pm_hint", qlang
             ),
             switch_pm_parameter="search",
         )
@@ -74,15 +82,17 @@ async def inline_search(query: InlineQuery) -> None:
             logger.info(
                 "inline_tracks_fetched", count=len(tracks)
             )
+            nartist = tr(
+                "stats.unknown_artist", qlang
+            )
+            ntitle = tr("fmt.untitled", qlang)
+            pword = tr("inline_mode.plays", qlang)
             for track in tracks:
                 tid = track["id"]
                 artist_raw = (
-                    track.get("artist")
-                    or "Неизвестный исполнитель"
+                    track.get("artist") or nartist
                 )
-                title_raw = track.get(
-                    "title", "Без названия"
-                )
+                title_raw = track.get("title", ntitle)
                 play_count = track.get(
                     "play_count", 0
                 )
@@ -96,7 +106,7 @@ async def inline_search(query: InlineQuery) -> None:
                         title=title_raw,
                         description=(
                             f"{artist_raw} · "
-                            f"{play_count} прослушиваний"
+                            f"{play_count} {pword}"
                         ),
                         input_message_content=(
                             InputTextMessageContent(
@@ -109,7 +119,7 @@ async def inline_search(query: InlineQuery) -> None:
                             )
                         ),
                         reply_markup=_track_keyboard(
-                            tid
+                            tid, qlang
                         ),
                     )
                 )

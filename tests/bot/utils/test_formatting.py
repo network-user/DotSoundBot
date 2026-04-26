@@ -30,7 +30,7 @@ def test_format_player_message_with_tracks() -> None:
     ]
 
     result = format_player_message(
-        "my", tracks, page=1, total=10
+        "my", tracks, page=1, total=10, lang="ru"
     )
 
     assert "Мои треки" in result
@@ -42,7 +42,7 @@ def test_format_player_message_with_tracks() -> None:
 
 def test_format_player_message_empty_tracks() -> None:
     result = format_player_message(
-        "feed", [], page=1, total=0
+        "feed", [], page=1, total=0, lang="ru"
     )
 
     assert "Нет треков." in result
@@ -54,7 +54,7 @@ def test_format_player_message_with_total() -> None:
     ]
 
     result = format_player_message(
-        "liked", tracks, page=2, total=5
+        "liked", tracks, page=2, total=5, lang="ru"
     )
 
     assert "Лайки" in result

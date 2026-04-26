@@ -19,6 +19,7 @@ def _make_message(user_id: int = 1) -> MagicMock:
     msg.from_user.first_name = "Alice"
     msg.from_user.username = "alice"
     msg.from_user.last_name = None
+    msg.from_user.language_code = "ru"
     msg.answer = AsyncMock()
     return msg
 
@@ -30,6 +31,7 @@ def _make_callback(
     cb.from_user = MagicMock()
     cb.from_user.id = user_id
     cb.from_user.first_name = "Alice"
+    cb.from_user.language_code = "ru"
     cb.data = data
     cb.answer = AsyncMock()
     cb.message = AsyncMock(spec=Message)
@@ -690,10 +692,12 @@ async def test_cmd_playlists_no_user() -> None:
 # ------------------------------------------------------------------
 
 
-def test_main_menu_text() -> None:
-    from bot.handlers.base import _main_menu_text
+def test_main_menu_welcome() -> None:
+    from bot.utils.formatting import (
+        format_main_menu_welcome,
+    )
 
-    text = _main_menu_text("Bob")
+    text = format_main_menu_welcome("Bob", "ru")
 
     assert "Bob" in text
     assert ".sound" in text

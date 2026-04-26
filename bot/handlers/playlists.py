@@ -5,7 +5,9 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from bot.api.client import BackendClient, BackendError
+from bot.i18n.core import resolve_lang, tr
 from bot.keyboards.inline import main_menu_kb, playlists_keyboard
+from bot.utils.formatting import html_escape, safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -29,9 +31,12 @@ async def on_create_playlist(
     logger.info("create_playlist_callback")
     await callback.answer()
     await state.set_state(CreatePlaylistStates.waiting_for_name)
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
     if callback.message and isinstance(callback.message, Message):
         await callback.message.answer(
-            "Введи название нового плейлиста:"
+            tr("playlists.ask_name", lang)
         )
 
 
@@ -41,6 +46,9 @@ async def on_playlist_name_received(
 ) -> None:
     if not message.from_user or not message.text:
         return
+    lang = resolve_lang(
+        message.from_user.language_code
+    )
 
     if message.text.startswith("/"):
         await state.clear()
@@ -49,7 +57,7 @@ async def on_playlist_name_received(
     name = message.text.strip()
     if not name:
         await message.answer(
-            "Название не может быть пустым. Попробуй ещё раз:"
+            tr("playlists.name_empty", lang)
         )
         return
 
@@ -71,10 +79,13 @@ async def on_playlist_name_received(
                 "playlist_created",
                 playlist_id=playlist.get("id"),
             )
+            en = html_escape(name)
             await message.answer(
-                f"✅ Плейлист <b>{name}</b> создан!\n\n"
-                "Открой плеер, чтобы добавить треки.",
-                reply_markup=main_menu_kb(),
+                tr("playlists.created", lang).format(
+                    name=en
+                ),
+                parse_mode="HTML",
+                reply_markup=main_menu_kb(lang),
             )
         except BackendError as exc:
             logger.error(
@@ -83,7 +94,7 @@ async def on_playlist_name_received(
                 detail=exc.detail,
             )
             await message.answer(
-                "Не удалось создать плейлист. Попробуй позже."
+                tr("playlists.create_error", lang)
             )
 
 
@@ -102,6 +113,9 @@ async def on_playlist_selected(
         return
 
     playlist_id = int(playlist_id_str)
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
     structlog.contextvars.bind_contextvars(
         handler="on_playlist_selected",
         user_id=callback.from_user.id,
@@ -115,13 +129,14 @@ async def on_playlist_selected(
                 f"/api/v1/playlists/{playlist_id}"
             )
             tracks = detail.get("tracks", [])
+            nempty = tr("playlists.no_tracks", lang)
             tracks_text = (
                 "\n".join(
                     f"🎵 {t.get('title', 'Unknown')}"
                     for t in tracks[:10]
                 )
                 if tracks
-                else "Треков пока нет"
+                else nempty
             )
             await callback.answer()
             if callback.message and isinstance(
@@ -130,10 +145,16 @@ async def on_playlist_selected(
                 pls = await client.get_user_playlists(
                     callback.from_user.id
                 )
+                pnm = safe_html(
+                    detail.get("name", ""), 120
+                )
                 await callback.message.answer(
-                    f"▤ <b>{detail.get('name', '')}</b>\n\n"
+                    f"▤ <b>{pnm}</b>\n\n"
                     f"{tracks_text}",
-                    reply_markup=playlists_keyboard(pls),
+                    parse_mode="HTML",
+                    reply_markup=playlists_keyboard(
+                        pls, lang
+                    ),
                 )
         except BackendError as exc:
             logger.error(
@@ -141,6 +162,6 @@ async def on_playlist_selected(
                 status=exc.status_code,
             )
             await callback.answer(
-                "Не удалось загрузить плейлист",
+                tr("playlists.view_error", lang),
                 show_alert=True,
             )

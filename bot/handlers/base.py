@@ -13,108 +13,17 @@ from bot.keyboards.inline import (
     playlists_keyboard,
     profile_kb,
 )
-from bot.utils.formatting import html_escape, safe_html
+from bot.i18n.core import resolve_lang, tr
+from bot.utils.formatting import (
+    format_main_menu_welcome,
+    html_escape,
+    safe_html,
+)
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = (
     structlog.get_logger(__name__)
 )
-
-_ABOUT_TEXTS = {
-    "features": (
-        "🎵 <b>Возможности .sound</b>\n\n"
-        ".sound — музыкальная платформа нового "
-        "поколения прямо в Telegram. "
-        "Без рекламы, без подписок.\n\n"
-        "— Загружай свои треки в любом формате\n"
-        "— Слушай музыку прямо в Mini App\n"
-        "— Адаптивное качество: HLS стриминг\n"
-        "  подстраивается под скорость (128k/64k)\n"
-        "— Автоматическая генерация обложек\n"
-        "— Лайки, дизлайки, плейлисты\n"
-        "— Поиск по всей библиотеке\n"
-        "— Инлайн-режим: ищи и делись "
-        "треками в любом чате\n"
-        "— Текст песен с синхронизацией\n"
-        "— Профиль автора со статистикой\n"
-        "— Подписки на авторов и лента новинок"
-    ),
-    "tech": (
-        "⚙️ <b>Технологии</b>\n\n"
-        "Backend: Python, FastAPI, SQLAlchemy, "
-        "PostgreSQL\n"
-        "Хранилище: MinIO (S3-совместимое)\n"
-        "Очереди: Taskiq + Redis\n"
-        "Бот: aiogram 3, aiohttp\n"
-        "Frontend: React, TypeScript, Vite\n"
-        "Стриминг: HLS adaptive bitrate (hls.js)\n"
-        "Транскодирование: FFmpeg "
-        "(MP3 192k + AAC 128k/64k)\n\n"
-        "Весь стек асинхронный. Аудио "
-        "обрабатывается в фоне через "
-        "распределённую очередь задач."
-    ),
-    "upload": (
-        "📤 <b>Как загрузить музыку</b>\n\n"
-        "<b>Способ 1 — Через бота:</b>\n"
-        "Просто отправь аудиофайл в этот чат. "
-        "Бот загрузит его автоматически.\n\n"
-        "<b>Способ 2 — Через Mini App:</b>\n"
-        "Открой плеер → «Загрузить» → выбери файл. "
-        "Можно добавить обложку, жанр и текст.\n\n"
-        "<b>Форматы:</b> "
-        "MP3, OGG, WAV, FLAC, AAC, M4A\n"
-        "<b>Макс. размер:</b> 100 МБ\n"
-        "<b>Квота:</b> 3 ГБ на пользователя"
-    ),
-    "import": (
-        "📥 <b>Импорт из Telegram</b>\n\n"
-        "Импортируй музыку из своего профиля "
-        "Telegram прямо в .sound.\n\n"
-        "<b>Как это работает:</b>\n"
-        "1. Открой плеер → Профиль → Импорт\n"
-        "2. Выбери «Telegram»\n"
-        "3. Бот найдёт треки из твоего профиля\n"
-        "4. Выбери нужные → «Импортировать»\n\n"
-        "Импорт идёт в фоне — можно закрыть окно. "
-        "Треки появятся с меткой <b>TG</b>.\n\n"
-        "<i>Скоро: VK, Яндекс, Spotify, "
-        "SoundCloud</i>"
-    ),
-    "opensource": (
-        "💻 <b>Открытый код</b>\n\n"
-        ".sound — open source проект.\n\n"
-        "<b>Два репозитория:</b>\n"
-        "— DotSoundBackend — API, БД, стриминг\n"
-        "— DotSoundBot — Telegram бот\n\n"
-        "Стек полностью асинхронный, "
-        "код самодокументирующийся.\n\n"
-        "Хочешь внести вклад? Форкни и отправь PR."
-    ),
-    "roadmap": (
-        "🚀 <b>Планы на будущее</b>\n\n"
-        "— Импорт из VK, Яндекс, Spotify\n"
-        "— Рекомендации на основе лайков\n"
-        "— Совместные плейлисты\n"
-        "— Эквалайзер и настройки звука\n"
-        "— Оффлайн-режим (кэш треков)\n"
-        "— Подкасты и аудиокниги\n"
-        "— Монетизация для авторов\n"
-        "— Telegram Premium интеграция\n\n"
-        "<i>Следи за обновлениями!</i>"
-    ),
-}
-
-
-def _main_menu_text(name: str | None) -> str:
-    safe_name = html_escape(name or "друг")
-    return (
-        f"Привет, <b>{safe_name}</b>! 👋\n\n"
-        "Добро пожаловать в <b>.sound</b> — "
-        "музыка без рекламы.\n"
-        "Слушай. Делись. Открывай."
-    )
-
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
@@ -128,9 +37,12 @@ async def cmd_start(message: Message) -> None:
     )
     logger.info("cmd_start_called")
 
+    lang = resolve_lang(user.language_code)
     await message.answer(
-        _main_menu_text(user.first_name),
-        reply_markup=main_menu_kb(),
+        format_main_menu_welcome(
+            user.first_name, lang
+        ),
+        reply_markup=main_menu_kb(lang),
     )
 
     try:
@@ -160,12 +72,13 @@ async def on_main_menu(
         return
     await callback.answer()
     name = callback.from_user.first_name
+    lang = resolve_lang(callback.from_user.language_code)
     if callback.message and isinstance(
         callback.message, Message
     ):
         await callback.message.edit_text(
-            _main_menu_text(name),
-            reply_markup=main_menu_kb(),
+            format_main_menu_welcome(name, lang),
+            reply_markup=main_menu_kb(lang),
         )
 
 
@@ -174,15 +87,15 @@ async def on_about(
     callback: CallbackQuery,
 ) -> None:
     await callback.answer()
+    if not callback.from_user:
+        return
+    lang = resolve_lang(callback.from_user.language_code)
     if callback.message and isinstance(
         callback.message, Message
     ):
         await callback.message.edit_text(
-            "ℹ️ <b>О проекте .sound</b>\n\n"
-            "Музыкальная платформа без рекламы "
-            "в Telegram.\n"
-            "Выбери раздел:",
-            reply_markup=about_kb(),
+            tr("base.about.title", lang),
+            reply_markup=about_kb(lang),
         )
 
 
@@ -196,9 +109,16 @@ async def on_about_section(
         await callback.answer()
         return
     section = callback.data.split(":")[1]
-    text = _ABOUT_TEXTS.get(section)
-    if not text:
-        await callback.answer("Раздел не найден")
+    if not callback.from_user:
+        await callback.answer()
+        return
+    lang = resolve_lang(callback.from_user.language_code)
+    key = f"base.about.{section}"
+    text = tr(key, lang)
+    if text == key:
+        await callback.answer(
+            tr("base.section_missing", lang),
+        )
         return
     await callback.answer()
     if callback.message and isinstance(
@@ -206,7 +126,7 @@ async def on_about_section(
     ):
         await callback.message.edit_text(
             text,
-            reply_markup=back_to_about_kb(),
+            reply_markup=back_to_about_kb(lang),
         )
 
 
@@ -219,6 +139,7 @@ async def on_profile(
         return
     await callback.answer()
     user = callback.from_user
+    lang = resolve_lang(user.language_code)
 
     async with BackendClient() as client:
         try:
@@ -243,32 +164,27 @@ async def on_profile(
             text = (
                 f"👤 <b>{safe_name}</b>\n"
                 f"{username_str}\n"
-                f"🎵 Треков: "
+                f"{tr('base.stats.tracks', lang)} "
                 f"<b>{stats.get('total_tracks', 0)}"
                 f"</b>\n"
-                f"▶️ Прослушиваний: "
+                f"{tr('base.stats.plays', lang)} "
                 f"<b>{stats.get('total_plays', 0)}"
                 f"</b>\n"
-                f"❤️ Лайков: "
+                f"{tr('base.stats.likes', lang)} "
                 f"<b>{stats.get('total_likes', 0)}"
                 f"</b>\n"
-                f"👥 Подписчиков: "
-                f"<b>"
-                f"{stats.get('followers_count', 0)}"
-                f"</b>"
+                f"{tr('base.stats.followers', lang)} "
+                f"<b>{stats.get('followers_count', 0)}</b>"
             )
         except BackendError:
-            text = (
-                "Не удалось загрузить профиль. "
-                "Попробуй позже."
-            )
+            text = tr("base.profile.load_error", lang)
 
     if callback.message and isinstance(
         callback.message, Message
     ):
         await callback.message.edit_text(
             text,
-            reply_markup=profile_kb(),
+            reply_markup=profile_kb(lang),
         )
 
 
@@ -283,6 +199,7 @@ async def on_login_history(
         return
     await callback.answer()
     user = callback.from_user
+    lang = resolve_lang(user.language_code)
 
     async with BackendClient() as client:
         try:
@@ -295,14 +212,9 @@ async def on_login_history(
                 )
             )
             if not history:
-                text = (
-                    "🔐 <b>История входов</b>\n\n"
-                    "Нет записей о входах."
-                )
+                text = tr("base.login.empty", lang)
             else:
-                lines = [
-                    "🔐 <b>История входов</b>\n"
-                ]
+                lines = [tr("base.login.header", lang)]
                 for i, entry in enumerate(
                     history, 1
                 ):
@@ -322,21 +234,18 @@ async def on_login_history(
                         f"{device} — {ip}"
                     )
                 lines.append(
-                    "\n<i>Последние 10 входов</i>"
+                    tr("base.login.footer", lang)
                 )
                 text = "\n".join(lines)
         except BackendError:
-            text = (
-                "Не удалось загрузить историю. "
-                "Попробуй позже."
-            )
+            text = tr("base.login.load_error", lang)
 
     if callback.message and isinstance(
         callback.message, Message
     ):
         await callback.message.edit_text(
             text,
-            reply_markup=back_to_menu_kb(),
+            reply_markup=back_to_menu_kb(lang),
         )
 
 
@@ -345,17 +254,13 @@ async def cmd_help(message: Message) -> None:
     structlog.contextvars.bind_contextvars(
         handler="cmd_help"
     )
+    if not message.from_user:
+        return
+    lang = resolve_lang(message.from_user.language_code)
     await message.answer(
-        "Что умеет .sound:\n\n"
-        "🎵 <b>Плеер</b> — слушай прямо "
-        "в Telegram\n"
-        "🔍 <b>Поиск</b> — введи название\n"
-        "▤ <b>Плейлисты</b> — создавай подборки\n"
-        "❤️ <b>Лайки</b> — сохраняй треки\n"
-        "👤 <b>Профиль</b> — статистика\n"
-        "📊 /mystats — статистика в чате",
+        tr("base.help", lang),
         parse_mode="HTML",
-        reply_markup=help_keyboard(),
+        reply_markup=help_keyboard(lang),
     )
 
 
@@ -364,6 +269,7 @@ async def cmd_profile(message: Message) -> None:
     if not message.from_user:
         return
     user = message.from_user
+    lang = resolve_lang(user.language_code)
 
     async with BackendClient() as client:
         try:
@@ -381,21 +287,21 @@ async def cmd_profile(message: Message) -> None:
             safe_name = html_escape(display_name)
             await message.answer(
                 f"👤 <b>{safe_name}</b>\n\n"
-                f"🎵 Треков: "
+                f"{tr('base.stats.tracks', lang)} "
                 f"<b>{stats.get('total_tracks', 0)}"
                 f"</b>\n"
-                f"▶️ Прослушиваний: "
+                f"{tr('base.stats.plays', lang)} "
                 f"<b>{stats.get('total_plays', 0)}"
                 f"</b>\n"
-                f"❤️ Лайков: "
+                f"{tr('base.stats.likes', lang)} "
                 f"<b>{stats.get('total_likes', 0)}"
                 f"</b>",
                 parse_mode="HTML",
-                reply_markup=profile_kb(),
+                reply_markup=profile_kb(lang),
             )
         except BackendError:
             await message.answer(
-                "Не удалось загрузить профиль."
+                tr("base.cmd_profile.error", lang)
             )
 
 
@@ -406,6 +312,7 @@ async def cmd_playlists(
     if not message.from_user:
         return
     user = message.from_user
+    lang = resolve_lang(user.language_code)
 
     async with BackendClient() as client:
         try:
@@ -416,9 +323,8 @@ async def cmd_playlists(
             )
             if not pls:
                 await message.answer(
-                    "У тебя пока нет плейлистов.\n"
-                    "Открой плеер и создай первый!",
-                    reply_markup=main_menu_kb(),
+                    tr("base.playlists.empty", lang),
+                    reply_markup=main_menu_kb(lang),
                 )
                 return
             names = "\n".join(
@@ -426,12 +332,14 @@ async def cmd_playlists(
                 for pl in pls[:10]
             )
             await message.answer(
-                f"Твои плейлисты "
-                f"({len(pls)}):\n\n{names}",
+                tr("base.playlists.caption", lang).format(
+                    n=len(pls),
+                    names=names,
+                ),
                 parse_mode="HTML",
-                reply_markup=playlists_keyboard(pls),
+                reply_markup=playlists_keyboard(pls, lang),
             )
         except BackendError:
             await message.answer(
-                "Не удалось загрузить плейлисты."
+                tr("base.playlists.error", lang)
             )

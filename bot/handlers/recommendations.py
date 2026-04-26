@@ -3,6 +3,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 
 from bot.api.client import BackendClient, BackendError
+from bot.i18n.core import resolve_lang, tr
 from bot.keyboards.inline import (
     back_to_menu_kb,
     daily_playlist_kb,
@@ -47,6 +48,9 @@ async def on_daily_playlist(
     if not callback.from_user:
         await callback.answer()
         return
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
     await callback.answer()
 
     async with BackendClient() as client:
@@ -63,9 +67,8 @@ async def on_daily_playlist(
                 callback.message, Message
             ):
                 await callback.message.edit_text(
-                    "Не удалось загрузить плейлист дня. "
-                    "Попробуй позже.",
-                    reply_markup=back_to_menu_kb(),
+                    tr("recs.daily_error", lang),
+                    reply_markup=back_to_menu_kb(lang),
                 )
             return
 
@@ -73,7 +76,9 @@ async def on_daily_playlist(
     external = data.get("external_suggestions") or []
     global_top = data.get("global_top") or []
 
-    lines: list[str] = ["📅 <b>Плейлист дня</b>\n"]
+    lines: list[str] = [
+        tr("recs.daily_header", lang),
+    ]
 
     if internal:
         for i, t in enumerate(
@@ -81,15 +86,15 @@ async def on_daily_playlist(
         ):
             lines.append(f"{i}. {_fmt_track(t)}")
     else:
-        lines.append("<i>Треки ещё не подобраны</i>")
+        lines.append(tr("recs.empty", lang))
 
     if external:
-        lines.append("\n🌐 <b>Открытия</b>")
+        lines.append(tr("recs.external", lang))
         for e in external[:_MAX_EXTERNAL]:
             lines.append(f"• {_fmt_external(e)}")
 
     if global_top:
-        lines.append("\n🔥 <b>Топ платформы</b>")
+        lines.append(tr("recs.top", lang))
         for t in global_top[:_MAX_GLOBAL_TOP]:
             lines.append(f"• {_fmt_track(t)}")
 
@@ -98,7 +103,7 @@ async def on_daily_playlist(
     ):
         await callback.message.edit_text(
             "\n".join(lines),
-            reply_markup=daily_playlist_kb(),
+            reply_markup=daily_playlist_kb(lang),
         )
 
 
@@ -111,6 +116,9 @@ async def on_weekly_playlist(
     if not callback.from_user:
         await callback.answer()
         return
+    wlang = resolve_lang(
+        callback.from_user.language_code
+    )
     await callback.answer()
 
     async with BackendClient() as client:
@@ -127,16 +135,17 @@ async def on_weekly_playlist(
                 callback.message, Message
             ):
                 await callback.message.edit_text(
-                    "Не удалось загрузить плейлист недели. "
-                    "Попробуй позже.",
-                    reply_markup=back_to_menu_kb(),
+                    tr("recs.weekly_error", wlang),
+                    reply_markup=back_to_menu_kb(wlang),
                 )
             return
 
     internal = data.get("internal_tracks") or []
     external = data.get("external_suggestions") or []
 
-    lines: list[str] = ["📆 <b>Плейлист недели</b>\n"]
+    lines: list[str] = [
+        tr("recs.weekly_header", wlang),
+    ]
 
     if internal:
         for i, t in enumerate(
@@ -144,10 +153,10 @@ async def on_weekly_playlist(
         ):
             lines.append(f"{i}. {_fmt_track(t)}")
     else:
-        lines.append("<i>Треки ещё не подобраны</i>")
+        lines.append(tr("recs.empty", wlang))
 
     if external:
-        lines.append("\n🌐 <b>Открытия недели</b>")
+        lines.append(tr("recs.external_week", wlang))
         for e in external[:_MAX_WEEKLY_EXTERNAL]:
             lines.append(f"• {_fmt_external(e)}")
 
@@ -156,7 +165,7 @@ async def on_weekly_playlist(
     ):
         await callback.message.edit_text(
             "\n".join(lines),
-            reply_markup=weekly_playlist_kb(),
+            reply_markup=weekly_playlist_kb(wlang),
         )
 
 
@@ -167,7 +176,9 @@ async def on_refresh_daily(
     if not callback.from_user:
         await callback.answer()
         return
-    await callback.answer()
+    rlang = resolve_lang(
+        callback.from_user.language_code
+    )
 
     async with BackendClient() as client:
         try:
@@ -175,16 +186,18 @@ async def on_refresh_daily(
                 callback.from_user.id
             )
             await callback.answer(
-                "✅ Плейлист обновлён",
+                tr("recs.refreshed", rlang),
                 show_alert=True,
             )
         except BackendError as exc:
             if exc.status_code == 403:
-                msg = "❌ Только для администраторов"
+                msg = tr("recs.admin_only", rlang)
             else:
-                msg = "Ошибка обновления"
+                msg = tr("recs.refresh_error", rlang)
                 logger.warning(
                     "daily_refresh_failed",
                     status=exc.status_code,
                 )
-            await callback.answer(msg, show_alert=True)
+            await callback.answer(
+                msg, show_alert=True
+            )

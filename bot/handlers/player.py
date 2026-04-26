@@ -18,6 +18,7 @@ from bot.api.client import (
     BackendError,
 )
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 from bot.keyboards.inline import (
     main_menu_kb,
     player_control_kb,
@@ -32,6 +33,7 @@ from bot.services.player_session import (
     player_sessions,
 )
 from bot.utils.formatting import (
+    format_main_menu_welcome,
     format_player_message,
 )
 
@@ -161,11 +163,13 @@ async def _send_audio_batch(
     chat_id: int,
     tracks: list[dict[str, Any]],
     token: str,
+    lang: str,
 ) -> list[int]:
     message_ids: list[int] = []
+    no_title = tr("fmt.untitled", lang)
     for track in tracks:
         track_id: int = track["id"]
-        title = track.get("title", "Без названия")
+        title = track.get("title", no_title)
         artist = track.get("artist") or track.get(
             "performer", ""
         )
@@ -209,12 +213,14 @@ async def _edit_audio_batch(
     session: PlayerSession,
     tracks: list[dict[str, Any]],
     token: str,
+    lang: str,
     prefetched: dict[int, str] | None = None,
 ) -> list[int]:
     new_ids: list[int] = []
+    no_title = tr("fmt.untitled", lang)
     for i, track in enumerate(tracks):
         track_id: int = track["id"]
-        title = track.get("title", "Без названия")
+        title = track.get("title", no_title)
         artist = track.get("artist") or track.get(
             "performer", ""
         )
@@ -388,13 +394,17 @@ async def on_player_menu(
     callback: CallbackQuery,
 ) -> None:
     await callback.answer()
+    if not callback.from_user:
+        return
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
     if callback.message and isinstance(
         callback.message, Message
     ):
         await callback.message.edit_text(
-            "🎧 <b>Плеер</b>\n\n"
-            "Выбери источник треков:",
-            reply_markup=player_source_kb(),
+            tr("player.title_prompt", lang),
+            reply_markup=player_source_kb(lang),
         )
 
 
@@ -407,7 +417,12 @@ async def on_player_source(
     if not callback.from_user or not callback.data:
         await callback.answer()
         return
-    await callback.answer("Загрузка...")
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
+    await callback.answer(
+        tr("player.loading", lang)
+    )
 
     source = callback.data.split(":")[-1]
     telegram_id = callback.from_user.id
@@ -446,9 +461,8 @@ async def on_player_source(
                 callback.message, Message
             ):
                 await callback.message.edit_text(
-                    "Не удалось авторизоваться. "
-                    "Попробуй позже.",
-                    reply_markup=main_menu_kb(),
+                    tr("player.auth_failed", lang),
+                    reply_markup=main_menu_kb(lang),
                 )
             return
 
@@ -467,9 +481,8 @@ async def on_player_source(
                 callback.message, Message
             ):
                 await callback.message.edit_text(
-                    "Не удалось загрузить треки. "
-                    "Попробуй позже.",
-                    reply_markup=main_menu_kb(),
+                    tr("player.tracks_error", lang),
+                    reply_markup=main_menu_kb(lang),
                 )
             return
 
@@ -478,8 +491,8 @@ async def on_player_source(
                 callback.message, Message
             ):
                 await callback.message.edit_text(
-                    "Треков не найдено.",
-                    reply_markup=main_menu_kb(),
+                    tr("player.no_tracks", lang),
+                    reply_markup=main_menu_kb(lang),
                 )
             return
 
@@ -497,17 +510,22 @@ async def on_player_source(
             chat_id,
             tracks,
             token,
+            lang,
         )
 
     text = format_player_message(
-        source, tracks, page=1, total=total
+        source,
+        tracks,
+        page=1,
+        total=total,
+        lang=lang,
     )
     control_msg = await callback.bot.send_message(
         chat_id=chat_id,
         text=text,
         parse_mode="HTML",
         reply_markup=player_control_kb(
-            len(msg_ids), has_more
+            len(msg_ids), has_more, lang
         ),
     )
 
@@ -536,16 +554,21 @@ async def on_player_next(
     if not callback.from_user:
         await callback.answer()
         return
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
 
     telegram_id = callback.from_user.id
     session = player_sessions.get(telegram_id)
     if not session:
         await callback.answer(
-            "Сессия истекла. Открой плеер заново."
+            tr("player.session_expired", lang)
         )
         return
 
-    await callback.answer("Загрузка...")
+    await callback.answer(
+        tr("player.loading", lang)
+    )
     session.touch()
 
     prefetched_urls: dict[int, str] | None = None
@@ -578,12 +601,14 @@ async def on_player_next(
                 )
             except BackendError:
                 await callback.answer(
-                    "Ошибка загрузки."
+                    tr("player.load_page_error", lang)
                 )
                 return
 
     if not tracks:
-        await callback.answer("Больше треков нет.")
+        await callback.answer(
+            tr("player.no_more", lang)
+        )
         session.has_more = False
         return
 
@@ -597,6 +622,7 @@ async def on_player_next(
             session,
             tracks,
             token,
+            lang,
             prefetched=prefetched_urls,
         )
 
@@ -610,6 +636,7 @@ async def on_player_next(
         tracks,
         page=session.page,
         total=total,
+        lang=lang,
     )
     try:
         await callback.bot.edit_message_text(
@@ -618,7 +645,7 @@ async def on_player_next(
             text=text,
             parse_mode="HTML",
             reply_markup=player_control_kb(
-                len(new_ids), has_more
+                len(new_ids), has_more, lang
             ),
         )
     except Exception:
@@ -637,10 +664,15 @@ async def on_player_like(
         await callback.answer()
         return
 
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
     telegram_id = callback.from_user.id
     session = player_sessions.get(telegram_id)
     if not session:
-        await callback.answer("Сессия истекла.")
+        await callback.answer(
+            tr("player.session_short", lang)
+        )
         return
 
     idx_str = callback.data.split(":")[-1]
@@ -651,7 +683,9 @@ async def on_player_like(
         return
 
     if idx < 0 or idx >= len(session.track_ids):
-        await callback.answer("Трек не найден.")
+        await callback.answer(
+            tr("player.track_missing", lang)
+        )
         return
 
     track_id = session.track_ids[idx]
@@ -669,13 +703,13 @@ async def on_player_like(
             )
             liked = result.get("liked", False)
             await callback.answer(
-                "Лайк добавлен"
+                tr("player.like_on", lang)
                 if liked
-                else "Лайк убран"
+                else tr("player.like_off", lang)
             )
         except BackendError:
             await callback.answer(
-                "Ошибка. Попробуй позже."
+                tr("player.like_error", lang)
             )
 
 
@@ -705,10 +739,10 @@ async def on_player_back(
         callback.message, Message
     ):
         name = callback.from_user.first_name
+        olang = resolve_lang(
+            callback.from_user.language_code
+        )
         await callback.message.edit_text(
-            f"Привет, <b>{name}</b>! 👋\n\n"
-            "Добро пожаловать в <b>.sound</b> — "
-            "музыка без рекламы.\n"
-            "Слушай. Делись. Открывай.",
-            reply_markup=main_menu_kb(),
+            format_main_menu_welcome(name, olang),
+            reply_markup=main_menu_kb(olang),
         )

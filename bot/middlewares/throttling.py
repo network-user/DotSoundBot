@@ -3,6 +3,7 @@ from typing import Any, Awaitable, Callable
 
 import structlog
 from aiogram import BaseMiddleware
+from bot.i18n.core import resolve_lang, tr
 from aiogram.types import (
     CallbackQuery,
     InlineQuery,
@@ -17,7 +18,20 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(
 
 _CLEANUP_INTERVAL = 60.0
 _ENTRY_TTL = 120.0
-_THROTTLED_HINT = "Слишком быстро. Подожди секунду."
+
+
+def _throttled_hint(
+    event: TelegramObject,
+) -> str:
+    u = getattr(
+        event, "from_user", None
+    ) or getattr(event, "user", None)
+    return tr(
+        "throttle.hint",
+        resolve_lang(
+            u.language_code if u else None
+        ),
+    )
 
 
 class ThrottlingMiddleware(BaseMiddleware):
@@ -57,21 +71,33 @@ class ThrottlingMiddleware(BaseMiddleware):
     async def _notify_throttled(
         self, event: TelegramObject
     ) -> None:
+        data_v = getattr(event, "data", None)
+        q_v = getattr(event, "query", None)
         try:
-            if isinstance(event, CallbackQuery):
+            if isinstance(event, Message):
                 await event.answer(
-                    _THROTTLED_HINT, show_alert=False
+                    _throttled_hint(event)
                 )
-            elif isinstance(event, InlineQuery):
+            elif (
+                isinstance(event, CallbackQuery)
+                or isinstance(data_v, str)
+            ):
+                await event.answer(
+                    _throttled_hint(event), show_alert=False
+                )
+            elif (
+                isinstance(event, InlineQuery)
+                or isinstance(q_v, str)
+            ):
                 await event.answer(
                     [],
                     cache_time=1,
                     is_personal=True,
-                    switch_pm_text=_THROTTLED_HINT,
+                    switch_pm_text=_throttled_hint(
+                        event
+                    ),
                     switch_pm_parameter="throttled",
                 )
-            elif isinstance(event, Message):
-                await event.answer(_THROTTLED_HINT)
         except Exception:
             logger.debug(
                 "throttle_notify_failed",

@@ -12,6 +12,8 @@ from dotsound_private_core.services import (
 )
 
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
+from bot.utils.formatting import html_escape
 
 router = Router(name="web_auth")
 logger: structlog.stdlib.BoundLogger = (
@@ -32,6 +34,7 @@ async def cmd_start_web_login(
         return
 
     user = message.from_user
+    lang = resolve_lang(user.language_code)
     structlog.contextvars.bind_contextvars(
         telegram_id=user.id,
         handler="web_login",
@@ -66,8 +69,7 @@ async def cmd_start_web_login(
             error=str(exc),
         )
         await message.answer(
-            "Не удалось сгенерировать код. "
-            "Попробуйте позже.",
+            tr("webauth.code_error", lang),
         )
         return
 
@@ -76,7 +78,7 @@ async def cmd_start_web_login(
     buttons = [
         [
             InlineKeyboardButton(
-                text="🌐 Ввести код на сайте",
+                text=tr("webauth.open_site", lang),
                 url=auth_url,
             )
         ],
@@ -85,11 +87,11 @@ async def cmd_start_web_login(
         inline_keyboard=buttons
     )
 
+    safe = html_escape(code)
     await message.answer(
-        f"🔐 <b>Код входа в .sound</b>\n\n"
-        f"<code>{code}</code>\n\n"
-        f"⏱ Действует <b>5 минут</b>\n\n"
-        f"<i>Введите этот код на сайте</i>",
+        tr("webauth.message", lang).format(
+            code=safe
+        ),
         parse_mode="HTML",
         reply_markup=keyboard,
     )

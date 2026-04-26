@@ -18,6 +18,7 @@ def _make_callback(
     cb = AsyncMock()
     cb.from_user = MagicMock()
     cb.from_user.id = user_id
+    cb.from_user.language_code = "ru"
     cb.data = data
     cb.answer = AsyncMock()
     cb.message = AsyncMock(spec=Message)
@@ -31,6 +32,7 @@ def _make_message(
     msg = AsyncMock()
     msg.from_user = MagicMock()
     msg.from_user.id = user_id
+    msg.from_user.language_code = "ru"
     msg.text = text
     msg.answer = AsyncMock()
     return msg
@@ -177,6 +179,7 @@ async def test_on_playlist_name_no_text() -> None:
     msg = AsyncMock()
     msg.from_user = MagicMock()
     msg.from_user.id = 1
+    msg.from_user.language_code = "ru"
     msg.text = None
     msg.answer = AsyncMock()
     state = AsyncMock()

@@ -7,126 +7,96 @@ from aiogram.utils.keyboard import (
 )
 
 from bot.config import settings
+from bot.i18n.core import tr
 
 
-def main_menu_kb() -> InlineKeyboardMarkup:
+def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🎵 Открыть плеер",
+        text=tr("inline.main.open_app", lang),
         web_app=WebAppInfo(url=settings.mini_app_url),
     )
     builder.button(
-        text="🎧 Плеер",
+        text=tr("inline.main.player", lang),
         callback_data="menu:player",
     )
     builder.button(
-        text="📅 Плейлист дня",
-        callback_data="menu:daily_playlist",
-    )
-    builder.button(
-        text="📆 Плейлист недели",
-        callback_data="menu:weekly_playlist",
-    )
-    builder.button(
-        text="👤 Профиль",
+        text=tr("inline.main.profile", lang),
         callback_data="menu:profile",
     )
     builder.button(
-        text="ℹ️ О проекте",
+        text=tr("inline.main.about", lang),
         callback_data="menu:about",
     )
     builder.button(
-        text="🔐 История входов",
+        text=tr("inline.main.login_history", lang),
         callback_data="menu:login_history",
     )
-    builder.adjust(1, 1, 2, 2, 1)
+    builder.adjust(1, 1, 2, 1)
     return builder.as_markup()
 
 
-def daily_playlist_kb() -> InlineKeyboardMarkup:
+def about_kb(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🔄 Обновить (debug)",
-        callback_data="rec:daily:refresh",
-    )
-    builder.button(
-        text="← Назад в меню",
-        callback_data="menu:main",
-    )
-    builder.adjust(1)
-    return builder.as_markup()
-
-
-def weekly_playlist_kb() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text="← Назад в меню",
-        callback_data="menu:main",
-    )
-    return builder.as_markup()
-
-
-def about_kb() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text="🎵 Возможности",
+        text=tr("inline.about.features", lang),
         callback_data="about:features",
     )
     builder.button(
-        text="⚙️ Технологии",
+        text=tr("inline.about.tech", lang),
         callback_data="about:tech",
     )
     builder.button(
-        text="📤 Загрузка музыки",
+        text=tr("inline.about.upload", lang),
         callback_data="about:upload",
     )
     builder.button(
-        text="📥 Импорт из TG",
+        text=tr("inline.about.import", lang),
         callback_data="about:import",
     )
     builder.button(
-        text="💻 Открытый код",
+        text=tr("inline.about.opensource", lang),
         callback_data="about:opensource",
     )
     builder.button(
-        text="🚀 Планы",
+        text=tr("inline.about.roadmap", lang),
         callback_data="about:roadmap",
     )
     builder.button(
-        text="← Назад в меню",
+        text=tr("inline.back.menu", lang),
         callback_data="menu:main",
     )
     builder.adjust(2, 2, 2, 1)
     return builder.as_markup()
 
 
-def back_to_about_kb() -> InlineKeyboardMarkup:
+def back_to_about_kb(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="← Назад к разделам",
+        text=tr("inline.back.about", lang),
         callback_data="menu:about",
     )
     return builder.as_markup()
 
 
-def profile_kb() -> InlineKeyboardMarkup:
+def profile_kb(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🎵 Открыть в плеере",
+        text=tr("inline.profile.open", lang),
         web_app=WebAppInfo(url=settings.mini_app_url),
     )
     builder.button(
-        text="← Назад в меню",
+        text=tr("inline.back.menu", lang),
         callback_data="menu:main",
     )
     builder.adjust(1)
     return builder.as_markup()
 
 
-def back_to_menu_kb() -> InlineKeyboardMarkup:
+def back_to_menu_kb(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="← Назад в меню",
+        text=tr("inline.back.menu", lang),
         callback_data="menu:main",
     )
     return builder.as_markup()
@@ -134,17 +104,18 @@ def back_to_menu_kb() -> InlineKeyboardMarkup:
 
 def open_player_keyboard(
     mini_app_url: str,
+    lang: str,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🎵 Открыть .sound",
+        text=tr("inline.open_sound", lang),
         web_app=WebAppInfo(url=mini_app_url),
     )
     return builder.as_markup()
 
 
 def track_action_keyboard(
-    track_id: int, mini_app_url: str
+    track_id: int, mini_app_url: str, lang: str
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
@@ -156,7 +127,7 @@ def track_action_keyboard(
         callback_data=f"dislike_{track_id}",
     )
     builder.button(
-        text="🎵 Слушать",
+        text=tr("inline.listen", lang),
         web_app=WebAppInfo(url=mini_app_url),
     )
     builder.adjust(2, 1)
@@ -164,7 +135,7 @@ def track_action_keyboard(
 
 
 def playlists_keyboard(
-    playlists: list[dict],
+    playlists: list[dict], lang: str
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for pl in playlists[:10]:
@@ -173,29 +144,29 @@ def playlists_keyboard(
             callback_data=f"playlist_{pl['id']}",
         )
     builder.button(
-        text="＋ Создать плейлист",
+        text=tr("inline.create_playlist", lang),
         callback_data="create_playlist",
     )
     builder.adjust(1)
     return builder.as_markup()
 
 
-def player_source_kb() -> InlineKeyboardMarkup:
+def player_source_kb(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🎵 Мои треки",
+        text=tr("inline.player.my", lang),
         callback_data="player:src:my",
     )
     builder.button(
-        text="❤️ Лайки",
+        text=tr("inline.player.liked", lang),
         callback_data="player:src:liked",
     )
     builder.button(
-        text="📻 Лента",
+        text=tr("inline.player.feed", lang),
         callback_data="player:src:feed",
     )
     builder.button(
-        text="← Назад в меню",
+        text=tr("inline.back.menu", lang),
         callback_data="menu:main",
     )
     builder.adjust(1)
@@ -205,6 +176,7 @@ def player_source_kb() -> InlineKeyboardMarkup:
 def player_control_kb(
     track_count: int,
     has_more: bool,
+    lang: str,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for i in range(track_count):
@@ -214,11 +186,11 @@ def player_control_kb(
         )
     if has_more:
         builder.button(
-            text="Ещё 3 →",
+            text=tr("inline.player.more3", lang),
             callback_data="player:next",
         )
     builder.button(
-        text="← Главное меню",
+        text=tr("inline.player.back_main", lang),
         callback_data="player:menu",
     )
     like_row = list(range(track_count))
@@ -230,19 +202,42 @@ def player_control_kb(
     return builder.as_markup()
 
 
-def help_keyboard() -> InlineKeyboardMarkup:
+def help_keyboard(lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🔍 Поиск",
+        text=tr("inline.help.search", lang),
         switch_inline_query_current_chat="",
     )
     builder.button(
-        text="🎵 Плеер",
+        text=tr("inline.main.player", lang),
         web_app=WebAppInfo(url=settings.mini_app_url),
     )
     builder.button(
-        text="📊 Моя статистика",
+        text=tr("inline.help.stats", lang),
         callback_data="my_stats",
     )
     builder.adjust(2, 1)
+    return builder.as_markup()
+
+
+def daily_playlist_kb(lang: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=tr("recs.refresh", lang),
+        callback_data="rec:daily:refresh",
+    )
+    builder.button(
+        text=tr("recs.daily_back", lang),
+        callback_data="menu:main",
+    )
+    builder.adjust(1, 1)
+    return builder.as_markup()
+
+
+def weekly_playlist_kb(lang: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=tr("recs.weekly_back", lang),
+        callback_data="menu:main",
+    )
     return builder.as_markup()

@@ -13,6 +13,7 @@ def _make_callback(data: str, user_id: int = 1):
     cb = AsyncMock()
     cb.from_user = MagicMock()
     cb.from_user.id = user_id
+    cb.from_user.language_code = "ru"
     cb.data = data
     cb.answer = AsyncMock()
     return cb

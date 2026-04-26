@@ -4,6 +4,7 @@ from aiogram.types import Document, Message
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 from bot.keyboards.inline import track_action_keyboard
 from bot.utils.formatting import safe_html
 
@@ -37,6 +38,7 @@ async def handle_audio(message: Message, bot: Bot) -> None:
 
     audio = message.audio
     user = message.from_user
+    lang = resolve_lang(user.language_code)
 
     structlog.contextvars.bind_contextvars(
         handler="handle_audio",
@@ -60,7 +62,7 @@ async def handle_audio(message: Message, bot: Bot) -> None:
     if file_bytes is None:
         logger.error("audio_download_failed")
         await message.reply(
-            "Не удалось скачать файл. Попробуй ещё раз."
+            tr("audio.download_failed", lang)
         )
         return
 
@@ -94,12 +96,12 @@ async def handle_audio(message: Message, bot: Bot) -> None:
                 else ""
             )
             await message.reply(
-                f"✅ Трек загружен!\n\n"
-                f"🎵 <b>{safe_title}</b>"
+                tr("audio.uploaded", lang)
+                + f"🎵 <b>{safe_title}</b>"
                 + artist_line,
                 parse_mode="HTML",
                 reply_markup=track_action_keyboard(
-                    track_id, mini_app_url
+                    track_id, mini_app_url, lang
                 ),
             )
         except BackendError as exc:
@@ -109,8 +111,7 @@ async def handle_audio(message: Message, bot: Bot) -> None:
                 detail=exc.detail,
             )
             await message.reply(
-                "Ошибка при загрузке трека. "
-                "Поддерживаемые форматы: MP3, OGG, WAV, FLAC, M4A."
+                tr("audio.upload_error", lang)
             )
 
 
@@ -123,6 +124,7 @@ async def handle_audio_document(
 
     doc = message.document
     user = message.from_user
+    lang = resolve_lang(user.language_code)
 
     structlog.contextvars.bind_contextvars(
         handler="handle_audio_document",
@@ -137,7 +139,9 @@ async def handle_audio_document(
         file_info.file_path or ""
     )
     if file_bytes is None:
-        await message.reply("Не удалось скачать файл.")
+        await message.reply(
+            tr("audio.reply_download", lang)
+        )
         return
 
     data = file_bytes.read()
@@ -162,11 +166,11 @@ async def handle_audio_document(
             )
             safe_title = safe_html(title, 80)
             await message.reply(
-                f"✅ Трек загружен!\n🎵 <b>"
-                f"{safe_title}</b>",
+                tr("audio.uploaded_doc", lang)
+                + f"{safe_title}</b>",
                 parse_mode="HTML",
                 reply_markup=track_action_keyboard(
-                    track_id, mini_app_url
+                    track_id, mini_app_url, lang
                 ),
             )
         except BackendError as exc:
@@ -175,6 +179,5 @@ async def handle_audio_document(
                 status=exc.status_code,
             )
             await message.reply(
-                "Ошибка при загрузке. Убедись, что файл "
-                "является аудио в поддерживаемом формате."
+                tr("audio.format_error", lang)
             )

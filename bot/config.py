@@ -11,8 +11,11 @@ class BotSettings(BaseSettings):
     backend_base_url: str
     mini_app_url: str
     log_level: str = "INFO"
+    # Caps aiogram, httpx, httpcore, aiohttp. DEBUG shows HTTP traces.
+    log_third_party_level: str = "WARNING"
     debug: bool = False
     redact_logs: bool = True
+    redact_log_identifiers: bool = True
     redis_url: str = "redis://localhost:6379/0"
     internal_api_port: int = 8081
     internal_api_host: str = "127.0.0.1"

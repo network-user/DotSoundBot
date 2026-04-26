@@ -27,6 +27,7 @@ def _make_callback(
     cb.from_user = MagicMock()
     cb.from_user.id = user_id
     cb.from_user.first_name = "Alice"
+    cb.from_user.language_code = "ru"
     cb.data = data
     cb.answer = AsyncMock()
     cb.message = AsyncMock(spec=Message)
@@ -354,7 +355,7 @@ async def test_send_audio_batch_success(
     )
 
     ids = await _send_audio_batch(
-        bot, client, 100, _tracks(1), "tok"
+        bot, client, 100, _tracks(1), "tok", "ru"
     )
 
     assert ids == [10]
@@ -379,7 +380,7 @@ async def test_send_audio_batch_skip_no_media(
     bot = AsyncMock()
 
     ids = await _send_audio_batch(
-        bot, client, 100, _tracks(1), "tok"
+        bot, client, 100, _tracks(1), "tok", "ru"
     )
 
     assert ids == []
@@ -402,7 +403,7 @@ async def test_send_audio_batch_send_exception(
     client = AsyncMock()
 
     ids = await _send_audio_batch(
-        bot, client, 100, _tracks(1), "tok"
+        bot, client, 100, _tracks(1), "tok", "ru"
     )
 
     assert ids == []
@@ -433,7 +434,7 @@ async def test_edit_audio_batch_edit_success(
     session.audio_message_ids = [10]
 
     new_ids = await _edit_audio_batch(
-        bot, client, session, _tracks(1), "tok"
+        bot, client, session, _tracks(1), "tok", "ru"
     )
 
     assert new_ids == [10]
@@ -466,7 +467,7 @@ async def test_edit_audio_batch_edit_fails_fallback(
     session.audio_message_ids = [10]
 
     new_ids = await _edit_audio_batch(
-        bot, client, session, _tracks(1), "tok"
+        bot, client, session, _tracks(1), "tok", "ru"
     )
 
     assert 20 in new_ids
@@ -494,7 +495,7 @@ async def test_edit_audio_batch_new_track_appended(
     session.audio_message_ids = []
 
     new_ids = await _edit_audio_batch(
-        bot, client, session, _tracks(1), "tok"
+        bot, client, session, _tracks(1), "tok", "ru"
     )
 
     assert new_ids == [30]
@@ -520,7 +521,7 @@ async def test_edit_audio_batch_deletes_extra(
     session.audio_message_ids = [10, 11, 12]
 
     new_ids = await _edit_audio_batch(
-        bot, client, session, _tracks(1), "tok"
+        bot, client, session, _tracks(1), "tok", "ru"
     )
 
     assert bot.delete_message.await_count == 2

@@ -22,7 +22,7 @@ def test_main_menu_kb_structure(
     mock_settings,
 ) -> None:
     mock_settings.mini_app_url = "https://app"
-    kb = main_menu_kb()
+    kb = main_menu_kb("ru")
 
     buttons = [
         btn
@@ -36,7 +36,7 @@ def test_main_menu_kb_structure(
 
 
 def test_about_kb_has_sections() -> None:
-    kb = about_kb()
+    kb = about_kb("ru")
 
     buttons = [
         btn
@@ -59,7 +59,7 @@ def test_about_kb_has_sections() -> None:
 def test_single_back_button(
     kb_fn, expected_data: str
 ) -> None:
-    kb = kb_fn()
+    kb = kb_fn("ru")
     assert len(kb.inline_keyboard) == 1
     assert (
         kb.inline_keyboard[0][0].callback_data
@@ -72,7 +72,7 @@ def test_profile_kb_has_back(
     mock_settings,
 ) -> None:
     mock_settings.mini_app_url = "https://app"
-    kb = profile_kb()
+    kb = profile_kb("ru")
 
     buttons = [
         btn
@@ -84,7 +84,7 @@ def test_profile_kb_has_back(
 
 
 def test_open_player_keyboard() -> None:
-    kb = open_player_keyboard("https://app.test")
+    kb = open_player_keyboard("https://app.test", "ru")
 
     assert len(kb.inline_keyboard) == 1
     btn = kb.inline_keyboard[0][0]
@@ -98,7 +98,7 @@ def test_track_action_keyboard(
 ) -> None:
     mock_settings.mini_app_url = "https://app"
     kb = track_action_keyboard(
-        42, "https://app/mini_app/?track_id=42"
+        42, "https://app/mini_app/?track_id=42", "ru"
     )
 
     buttons = [
@@ -120,7 +120,7 @@ def test_playlists_keyboard_with_items() -> None:
         {"id": 1, "name": "Chill"},
         {"id": 2, "name": "Rock"},
     ]
-    kb = playlists_keyboard(pls)
+    kb = playlists_keyboard(pls, "ru")
 
     buttons = [
         btn
@@ -134,7 +134,7 @@ def test_playlists_keyboard_with_items() -> None:
 
 
 def test_player_source_kb() -> None:
-    kb = player_source_kb()
+    kb = player_source_kb("ru")
 
     buttons = [
         btn
@@ -162,6 +162,7 @@ def test_player_control_kb(
     kb = player_control_kb(
         track_count=track_count,
         has_more=has_more,
+        lang="ru",
     )
 
     buttons = [
@@ -181,7 +182,7 @@ def test_player_control_kb(
 @patch("bot.keyboards.inline.settings")
 def test_help_keyboard(mock_settings) -> None:
     mock_settings.mini_app_url = "https://app"
-    kb = help_keyboard()
+    kb = help_keyboard("ru")
 
     buttons = [
         btn

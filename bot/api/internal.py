@@ -14,6 +14,7 @@ from dotsound_private_core.contracts import (
 )
 
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 from bot.utils.formatting import html_escape
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -173,16 +174,16 @@ async def handle_send_auth_code(
         )
 
     bot: Bot = request.app["bot"]
+    lang = resolve_lang(
+        str(body.get("language_code", "")) or None
+    )
 
     safe_code = html_escape(code)
     try:
         await bot.send_message(
             chat_id=telegram_id,
-            text=(
-                f"🔐 <b>Код входа в .sound</b>\n\n"
-                f"<code>{safe_code}</code>\n\n"
-                f"Действует 5 минут. "
-                f"Никому не сообщайте этот код."
+            text=tr("internal.code_message", lang).format(
+                code=safe_code
             ),
             parse_mode="HTML",
         )
@@ -221,6 +222,9 @@ async def handle_send_login_notification(
         )
 
     bot: Bot = request.app["bot"]
+    lang = resolve_lang(
+        str(body.get("language_code", "")) or None
+    )
 
     from aiogram.types import (
         InlineKeyboardButton,
@@ -231,7 +235,7 @@ async def handle_send_login_notification(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="🏠 Главное меню",
+                    text=tr("internal.open_player", lang),
                     callback_data="menu:player",
                 )
             ]
@@ -244,16 +248,10 @@ async def handle_send_login_notification(
     try:
         await bot.send_message(
             chat_id=telegram_id,
-            text=(
-                "✅ <b>Выполнен вход в .sound web"
-                "</b>\n\n"
-                f"🕐 Время: {safe_time}\n"
-                f"🌐 IP: {safe_ip}\n"
-                f"📱 Устройство: {safe_device}\n\n"
-                "<i>Если это были не вы, "
-                "немедленно смените пароль "
-                "или свяжитесь с поддержкой."
-                "</i>"
+            text=tr("internal.login_notice", lang).format(
+                time=safe_time,
+                ip=safe_ip,
+                device=safe_device,
             ),
             parse_mode="HTML",
             reply_markup=keyboard,

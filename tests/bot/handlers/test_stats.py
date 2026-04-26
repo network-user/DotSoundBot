@@ -16,6 +16,7 @@ def _make_message(user_id: int = 1):
     msg.from_user.first_name = "Alice"
     msg.from_user.username = "alice"
     msg.from_user.last_name = None
+    msg.from_user.language_code = "ru"
     msg.answer = AsyncMock()
     return msg
 
@@ -161,6 +162,7 @@ async def test_on_my_stats_without_message_answers_only() -> None:
     callback = AsyncMock()
     callback.from_user = MagicMock()
     callback.from_user.id = 42
+    callback.from_user.language_code = "ru"
     callback.message = None
     callback.answer = AsyncMock()
 

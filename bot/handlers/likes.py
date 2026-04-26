@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(
@@ -58,6 +59,9 @@ async def on_like(callback: CallbackQuery) -> None:
         track_id=track_id,
     )
     logger.info("like_callback_received")
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
 
     async with BackendClient() as client:
         identity = await _resolve_internal_identity(
@@ -65,7 +69,7 @@ async def on_like(callback: CallbackQuery) -> None:
         )
         if identity is None:
             await callback.answer(
-                "Авторизация не удалась.",
+                tr("likes.auth_failed", lang),
                 show_alert=True,
             )
             return
@@ -78,9 +82,9 @@ async def on_like(callback: CallbackQuery) -> None:
             liked: bool = data.get("liked", False)
             logger.info("like_toggled", liked=liked)
             text = (
-                "Добавлено в лайки"
+                tr("likes.added", lang)
                 if liked
-                else "Убрано из лайков"
+                else tr("likes.removed", lang)
             )
             await callback.answer(
                 text, show_alert=False
@@ -91,7 +95,7 @@ async def on_like(callback: CallbackQuery) -> None:
                 status=exc.status_code,
             )
             await callback.answer(
-                "Ошибка. Попробуй ещё раз.",
+                tr("likes.error", lang),
                 show_alert=True,
             )
 
@@ -119,6 +123,9 @@ async def on_dislike(
         track_id=track_id,
     )
     logger.info("dislike_callback_received")
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
 
     async with BackendClient() as client:
         identity = await _resolve_internal_identity(
@@ -126,7 +133,7 @@ async def on_dislike(
         )
         if identity is None:
             await callback.answer(
-                "Авторизация не удалась.",
+                tr("likes.auth_failed", lang),
                 show_alert=True,
             )
             return
@@ -141,9 +148,9 @@ async def on_dislike(
                 "dislike_toggled", disliked=disliked
             )
             text = (
-                "Дизлайк поставлен"
+                tr("likes.dislike_on", lang)
                 if disliked
-                else "Дизлайк убран"
+                else tr("likes.dislike_off", lang)
             )
             await callback.answer(
                 text, show_alert=False
@@ -154,6 +161,6 @@ async def on_dislike(
                 status=exc.status_code,
             )
             await callback.answer(
-                "Ошибка. Попробуй ещё раз.",
+                tr("likes.error", lang),
                 show_alert=True,
             )

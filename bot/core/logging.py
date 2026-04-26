@@ -6,17 +6,60 @@ from typing import Any
 
 import structlog
 
-_SENSITIVE_KEYS = frozenset({
-    "telegram_id",
-    "user_id",
-    "owner_id",
-    "file_id",
-    "token",
-    "access_token",
-    "client_ip",
-})
+_CORRELATION_ID_KEYS = frozenset(
+    {
+        "telegram_id",
+        "user_id",
+        "owner_id",
+        "file_id",
+        "client_ip",
+    }
+)
+
+_SENSITIVE_KEYS = frozenset(
+    {
+        "telegram_id",
+        "user_id",
+        "owner_id",
+        "file_id",
+        "token",
+        "access_token",
+        "client_ip",
+    }
+)
+
+_FULL_REDACT_KEYS = frozenset(
+    {
+        "token",
+        "access_token",
+    }
+)
 
 _REDACT_ENABLED = False
+_REDACT_IDENTIFIERS = True
+
+_THIRD_PARTY = (
+    "aiogram",
+    "httpx",
+    "httpcore",
+    "aiohttp",
+    "aiohttp.client",
+    "aiohttp.web",
+)
+
+
+def _parse_log_level_name(name: str) -> int:
+    key = (name or "WARNING").upper().strip()
+    parsed = getattr(logging, key, None)
+    if isinstance(parsed, int):
+        return parsed
+    return logging.WARNING
+
+
+def _apply_third_party_log_levels(third_party_level: str) -> None:
+    n = _parse_log_level_name(third_party_level)
+    for lname in _THIRD_PARTY:
+        logging.getLogger(lname).setLevel(n)
 
 
 def _attach_dev_file_log(level: int, filename: str) -> None:
@@ -46,7 +89,12 @@ def _attach_dev_file_log(level: int, filename: str) -> None:
 def _mask_value(key: str, value: Any) -> Any:
     if not _REDACT_ENABLED:
         return value
-    if key not in _SENSITIVE_KEYS:
+    lkey = key.lower()
+    if lkey in _FULL_REDACT_KEYS:
+        return "***REDACTED***"
+    if lkey in _CORRELATION_ID_KEYS and not _REDACT_IDENTIFIERS:
+        return value
+    if lkey not in _SENSITIVE_KEYS:
         return value
     s = str(value)
     if len(s) <= 4:
@@ -71,10 +119,13 @@ def _redact_processor(
 def configure_logging(
     log_level: str = "INFO",
     redact: bool = True,
+    redact_identifiers: bool = True,
     json_output: bool = False,
+    third_party_level: str = "WARNING",
 ) -> None:
-    global _REDACT_ENABLED
+    global _REDACT_ENABLED, _REDACT_IDENTIFIERS
     _REDACT_ENABLED = redact
+    _REDACT_IDENTIFIERS = redact_identifiers if redact else True
 
     level = getattr(
         logging, log_level.upper(), logging.INFO
@@ -121,8 +172,4 @@ def configure_logging(
         format="%(message)s",
     )
     _attach_dev_file_log(level, "bot.log")
-
-    for noisy in ("aiogram", "httpx", "httpcore"):
-        logging.getLogger(noisy).setLevel(
-            logging.WARNING
-        )
+    _apply_third_party_log_levels(third_party_level)

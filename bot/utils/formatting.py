@@ -1,5 +1,7 @@
 from html import escape
 
+from bot.i18n.core import tr
+
 
 def truncate(text: str, max_len: int) -> str:
     if len(text) <= max_len:
@@ -8,24 +10,26 @@ def truncate(text: str, max_len: int) -> str:
 
 
 def html_escape(value: object | None) -> str:
-    """Escape arbitrary user-provided value for HTML parse_mode."""
     if value is None:
         return ""
     return escape(str(value), quote=False)
 
 
+def format_main_menu_welcome(
+    name: str | None, lang: str
+) -> str:
+    safe = html_escape(
+        name or tr("base.friend", lang),
+    )
+    return tr("base.welcome", lang).format(
+        name=safe,
+    )
+
+
 def safe_html(text: str | None, max_len: int) -> str:
-    """Escape and truncate user content safely for HTML output."""
     if not text:
         return ""
     return html_escape(truncate(str(text), max_len))
-
-
-_SOURCE_LABELS = {
-    "my": "Мои треки",
-    "liked": "Лайки",
-    "feed": "Лента",
-}
 
 
 def format_player_message(
@@ -33,24 +37,33 @@ def format_player_message(
     tracks: list[dict],
     page: int,
     total: int | None = None,
+    lang: str = "en",
 ) -> str:
-    label = _SOURCE_LABELS.get(source, source)
+    label_map = {
+        "my": tr("fmt.label.my", lang),
+        "liked": tr("fmt.label.liked", lang),
+        "feed": tr("fmt.label.feed", lang),
+    }
+    label = label_map.get(source, source)
     start = (page - 1) * len(tracks) + 1
     end = start + len(tracks) - 1
+    no_title = tr("fmt.untitled", lang)
 
-    header = (
-        f"🎧 <b>Плеер — {html_escape(label)}</b>\n"
-    )
+    header = tr("fmt.header", lang).format(label=html_escape(label))
     if total is not None and total > 0:
-        header += f"Треки {start}–{end} из {total}\n"
+        header += tr("fmt.tracks_range", lang).format(
+            start=start,
+            end=end,
+            total=total,
+        )
     header += "\n"
 
     lines: list[str] = []
-    for i, t in enumerate(tracks, start=1):
+    for i, track in enumerate(tracks, start=1):
         title = safe_html(
-            t.get("title", "Без названия"), 40
+            track.get("title", no_title), 40
         )
-        artist_raw = t.get("artist") or t.get(
+        artist_raw = track.get("artist") or track.get(
             "performer", ""
         )
         artist = safe_html(artist_raw or None, 40)
@@ -62,7 +75,6 @@ def format_player_message(
             lines.append(f"{i}. {title}")
 
     if not lines:
-        return header + "Нет треков."
+        return header + tr("fmt.empty", lang)
 
     return header + "\n".join(lines)
-

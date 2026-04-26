@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, Message, User
 
 from bot.api.client import BackendClient, BackendError
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 from bot.keyboards.inline import open_player_keyboard
 from bot.utils.formatting import html_escape, safe_html
 
@@ -23,6 +24,9 @@ async def _send_stats(
         handler="send_stats",
     )
     logger.info("stats_fetch_started")
+    lang = resolve_lang(
+        user.language_code,
+    )
 
     async with BackendClient() as client:
         try:
@@ -46,8 +50,7 @@ async def _send_stats(
                 detail=exc.detail,
             )
             await target.answer(
-                "Не удалось получить статистику. "
-                "Попробуй позже."
+                tr("stats.error", lang)
             )
             return
 
@@ -68,22 +71,28 @@ async def _send_stats(
         total_plays=total_plays,
     )
 
-    safe_first_name = html_escape(user.first_name)
+    safe_first_name = html_escape(
+        user.first_name or ""
+    )
+    pl_suf = tr("stats.plays_suffix", lang)
     lines = [
-        f"📊 <b>Твоя статистика, "
-        f"{safe_first_name}</b>\n",
-        f"🎵 Загружено треков: "
-        f"<b>{total_tracks}</b>",
-        f"▶️ Всего прослушиваний: "
-        f"<b>{total_plays}</b>",
+        tr("stats.opening", lang).format(
+            name=safe_first_name
+        ),
+        tr("stats.tracks_line", lang).format(
+            n=total_tracks
+        ),
+        tr("stats.plays_line", lang).format(
+            n=total_plays
+        ),
     ]
 
     if top_tracks:
-        lines.append("\n🏆 <b>Топ треков:</b>")
+        lines.append(tr("stats.top_header", lang))
+        uartist = tr("stats.unknown_artist", lang)
         for i, track in enumerate(top_tracks, 1):
             artist = safe_html(
-                track.get("artist")
-                or "Неизвестный исполнитель",
+                track.get("artist") or uartist,
                 40,
             )
             play_count = track.get("play_count", 0)
@@ -92,14 +101,15 @@ async def _send_stats(
             )
             lines.append(
                 f"{i}. {title} — {artist} "
-                f"<i>({play_count} прослушиваний)</i>"
+                f"<i>({play_count} {pl_suf})</i>"
             )
 
     await target.answer(
         "\n".join(lines),
         parse_mode="HTML",
         reply_markup=open_player_keyboard(
-            settings.mini_app_url
+            settings.mini_app_url,
+            lang,
         ),
     )
 

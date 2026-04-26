@@ -35,7 +35,7 @@ class TestMaskValue:
         with patch(
             "bot.core.logging._REDACT_ENABLED", True
         ):
-            result = _mask_value("token", "ab")
+            result = _mask_value("user_id", "ab")
             assert result == "***"
 
     def test_long_value_partially_masked(
@@ -45,11 +45,32 @@ class TestMaskValue:
             "bot.core.logging._REDACT_ENABLED", True
         ):
             result = _mask_value(
-                "token", "abcdefghij"
+                "user_id", "abcdefghij"
             )
             assert "***" in result
             assert result.startswith("ab")
             assert result.endswith("ij")
+
+    def test_token_fully_redacted(
+        self,
+    ) -> None:
+        with patch(
+            "bot.core.logging._REDACT_ENABLED", True
+        ):
+            assert _mask_value("token", "x" * 40) == "***REDACTED***"
+
+    def test_user_id_passthrough_when_identifiers_off(
+        self,
+    ) -> None:
+        with (
+            patch(
+                "bot.core.logging._REDACT_ENABLED", True
+            ),
+            patch(
+                "bot.core.logging._REDACT_IDENTIFIERS", False
+            ),
+        ):
+            assert _mask_value("user_id", 999) == 999
 
     def test_sensitive_keys_masked(self) -> None:
         with patch(
@@ -119,8 +140,14 @@ class TestConfigureLogging:
             log_level="DEBUG",
             redact=False,
             json_output=False,
+            third_party_level="WARNING",
         )
-        for name in ("aiogram", "httpx", "httpcore"):
+        for name in (
+            "aiogram",
+            "httpx",
+            "httpcore",
+            "aiohttp",
+        ):
             lvl = logging.getLogger(name).level
             assert lvl >= logging.WARNING
 

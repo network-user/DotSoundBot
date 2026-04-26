@@ -20,6 +20,7 @@ def _make_message(
     msg = AsyncMock()
     msg.from_user = MagicMock()
     msg.from_user.id = user_id
+    msg.from_user.language_code = "ru"
     msg.audio = audio
     msg.document = document
     msg.reply = AsyncMock()

@@ -15,6 +15,7 @@ from aiogram.types import (
 
 from bot.api.internal import create_internal_app
 from bot.config import settings
+from bot.i18n.core import resolve_lang, tr
 from bot.core.logging import configure_logging
 from bot.handlers import (
     audio,
@@ -35,12 +36,6 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(
 )
 
 
-_FALLBACK_TEXT = (
-    "Что-то пошло не так. "
-    "Попробуй ещё раз чуть позже."
-)
-
-
 async def _global_error_handler(
     event: ErrorEvent,
 ) -> None:
@@ -55,13 +50,32 @@ async def _global_error_handler(
         or update.inline_query
         or update.message
     )
+    u = None
+    if (
+        update.callback_query
+        and update.callback_query.from_user
+    ):
+        u = update.callback_query.from_user
+    elif update.message and update.message.from_user:
+        u = update.message.from_user
+    elif (
+        update.inline_query
+        and update.inline_query.from_user
+    ):
+        u = update.inline_query.from_user
+    ftext = tr(
+        "app.fallback_error",
+        resolve_lang(
+            u.language_code if u else None
+        ),
+    )
     try:
         if isinstance(target, CallbackQuery):
             await target.answer(
-                _FALLBACK_TEXT, show_alert=True
+                ftext, show_alert=True
             )
         elif isinstance(target, Message):
-            await target.answer(_FALLBACK_TEXT)
+            await target.answer(ftext)
     except Exception:
         logger.debug("error_notify_failed")
 
@@ -70,7 +84,9 @@ async def main() -> None:
     configure_logging(
         settings.log_level,
         redact=settings.redact_logs,
+        redact_identifiers=settings.redact_log_identifiers,
         json_output=not settings.debug,
+        third_party_level=settings.log_third_party_level,
     )
     logger.info(
         "sound_bot_starting",
