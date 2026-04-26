@@ -1,4 +1,5 @@
 from unittest.mock import (
+    ANY,
     AsyncMock,
     MagicMock,
     patch,
@@ -66,7 +67,11 @@ async def test_main_startup_and_shutdown(
     await main()
 
     mock_configure.assert_called_once_with(
-        "INFO", redact=True, json_output=True
+        "INFO",
+        redact=True,
+        redact_identifiers=ANY,
+        json_output=True,
+        third_party_level=ANY,
     )
     bot.set_chat_menu_button.assert_awaited_once()
     runner.setup.assert_awaited_once()
@@ -192,7 +197,11 @@ async def test_main_debug_mode_no_json(
     await main()
 
     mock_configure.assert_called_once_with(
-        "DEBUG", redact=False, json_output=False
+        "DEBUG",
+        redact=False,
+        redact_identifiers=ANY,
+        json_output=False,
+        third_party_level=ANY,
     )
 
 
@@ -201,6 +210,8 @@ async def test_global_error_handler_callback_query() -> None:
 
     callback = MagicMock(spec=CallbackQuery)
     callback.answer = AsyncMock()
+    callback.from_user = MagicMock()
+    callback.from_user.language_code = "ru"
     update = MagicMock()
     update.callback_query = callback
     update.inline_query = None

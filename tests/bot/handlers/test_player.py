@@ -520,7 +520,7 @@ async def test_edit_audio_batch_deletes_extra(
     )
     session.audio_message_ids = [10, 11, 12]
 
-    new_ids = await _edit_audio_batch(
+    await _edit_audio_batch(
         bot, client, session, _tracks(1), "tok", "ru"
     )
 

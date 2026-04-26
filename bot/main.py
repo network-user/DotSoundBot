@@ -1,7 +1,5 @@
-import asyncio
 
 import structlog
-from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -12,10 +10,10 @@ from aiogram.types import (
     Message,
     WebAppInfo,
 )
+from aiohttp import web
 
 from bot.api.internal import create_internal_app
 from bot.config import settings
-from bot.i18n.core import resolve_lang, tr
 from bot.core.logging import configure_logging
 from bot.handlers import (
     audio,
@@ -28,6 +26,7 @@ from bot.handlers import (
     stats,
     web_auth,
 )
+from bot.i18n.core import resolve_lang, tr
 from bot.middlewares.logging import LoggingMiddleware
 from bot.middlewares.throttling import ThrottlingMiddleware
 

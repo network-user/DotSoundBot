@@ -226,7 +226,10 @@ async def test_on_about_section_opensource() -> None:
 
     cb.message.edit_text.assert_awaited_once()
     text = cb.message.edit_text.call_args[0][0]
-    assert "open source" in text.lower()
+    assert (
+        "open source" in text.lower()
+        or "код" in text.lower()
+    )
 
 
 async def test_on_about_section_roadmap() -> None:

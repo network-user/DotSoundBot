@@ -1,15 +1,17 @@
 import time
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 import structlog
 from aiogram import BaseMiddleware
-from bot.i18n.core import resolve_lang, tr
 from aiogram.types import (
     CallbackQuery,
     InlineQuery,
     Message,
     TelegramObject,
 )
+
+from bot.i18n.core import resolve_lang, tr
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(
     __name__

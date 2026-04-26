@@ -4,6 +4,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from bot.api.client import BackendClient, BackendError
+from bot.i18n.core import resolve_lang, tr
 from bot.keyboards.inline import (
     about_kb,
     back_to_about_kb,
@@ -13,7 +14,6 @@ from bot.keyboards.inline import (
     playlists_keyboard,
     profile_kb,
 )
-from bot.i18n.core import resolve_lang, tr
 from bot.utils.formatting import (
     format_main_menu_welcome,
     html_escape,
