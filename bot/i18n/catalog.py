@@ -82,6 +82,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "📻 Лента",
         "en": "📻 Feed",
     },
+    "inline.player.follows": {
+        "ru": "🔔 Подписки",
+        "en": "🔔 Subscriptions",
+    },
     "inline.player.more3": {
         "ru": "Ещё 3 →",
         "en": "3 more →",

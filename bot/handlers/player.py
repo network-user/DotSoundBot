@@ -107,6 +107,18 @@ async def _fetch_playable_tracks(
         has_more = end_idx < total
         return batch, total, has_more
 
+    if source == "follows":
+        data = await client.get_followed_artists_tracks(
+            token,
+            page=page,
+            size=_BATCH_SIZE,
+            playable=True,
+        )
+        items = data["items"]
+        total = data["total"]
+        has_more = page * _BATCH_SIZE < total
+        return items, total, has_more
+
     data = await client.get_feed_tracks(
         page=page,
         size=_BATCH_SIZE,

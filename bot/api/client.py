@@ -324,6 +324,29 @@ class BackendClient:
             params=params,
         )
 
+    async def get_followed_artists_tracks(
+        self,
+        token: str,
+        page: int = 1,
+        size: int = 3,
+        playable: bool = False,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "page": page,
+            "size": size,
+        }
+        if playable:
+            params["playable_only"] = "true"
+        response = await self._request(
+            "GET",
+            "/api/v1/users/me/followed-artists/tracks",
+            params=params,
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        return response.json()
+
     async def get_daily_playlist(
         self, telegram_id: int
     ) -> dict[str, Any]:
