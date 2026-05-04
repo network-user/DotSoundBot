@@ -119,11 +119,11 @@ def track_action_keyboard(
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="❤️",
+        text="Like",
         callback_data=f"like_{track_id}",
     )
     builder.button(
-        text="💔",
+        text="Dislike",
         callback_data=f"dislike_{track_id}",
     )
     builder.button(
@@ -185,7 +185,7 @@ def player_control_kb(
     builder = InlineKeyboardBuilder()
     for i in range(track_count):
         builder.button(
-            text=f"❤️ {i + 1}",
+            text=f"Like {i + 1}",
             callback_data=f"player:like:{i}",
         )
     if has_more:

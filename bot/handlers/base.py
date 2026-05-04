@@ -162,7 +162,7 @@ async def on_profile(
                 else ""
             )
             text = (
-                f"👤 <b>{safe_name}</b>\n"
+                f"<b>{safe_name}</b>\n"
                 f"{username_str}\n"
                 f"{tr('base.stats.tracks', lang)} "
                 f"<b>{stats.get('total_tracks', 0)}"
@@ -186,7 +186,6 @@ async def on_profile(
             text,
             reply_markup=profile_kb(lang),
         )
-
 
 @router.callback_query(
     F.data == "menu:login_history"
@@ -230,8 +229,8 @@ async def on_login_history(
                         entry.get("ip", "—")
                     )
                     lines.append(
-                        f"{i}. {dt} — "
-                        f"{device} — {ip}"
+                        f"{i}. {dt} - "
+                        f"{device} - {ip}"
                     )
                 lines.append(
                     tr("base.login.footer", lang)
@@ -286,7 +285,7 @@ async def cmd_profile(message: Message) -> None:
             ).strip() or (user.first_name or "")
             safe_name = html_escape(display_name)
             await message.answer(
-                f"👤 <b>{safe_name}</b>\n\n"
+                f"<b>{safe_name}</b>\n\n"
                 f"{tr('base.stats.tracks', lang)} "
                 f"<b>{stats.get('total_tracks', 0)}"
                 f"</b>\n"
@@ -303,7 +302,6 @@ async def cmd_profile(message: Message) -> None:
             await message.answer(
                 tr("base.cmd_profile.error", lang)
             )
-
 
 @router.message(F.text == "/playlists")
 async def cmd_playlists(
@@ -328,7 +326,7 @@ async def cmd_playlists(
                 )
                 return
             names = "\n".join(
-                f"▤ <b>{safe_html(pl.get('name'), 60)}</b>"
+                f"- <b>{safe_html(pl.get('name'), 60)}</b>"
                 for pl in pls[:10]
             )
             await message.answer(
