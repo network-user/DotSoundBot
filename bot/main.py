@@ -16,6 +16,7 @@ from bot.api.internal import create_internal_app
 from bot.config import settings
 from bot.core.logging import configure_logging
 from bot.handlers import (
+    artists,
     audio,
     base,
     inline_mode,
@@ -116,6 +117,7 @@ async def main() -> None:
     dp.include_router(playlists.router)
     dp.include_router(player.router)
     dp.include_router(recommendations.router)
+    dp.include_router(artists.router)
     dp.include_router(base.router)
     dp.include_router(inline_mode.router)
 

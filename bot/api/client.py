@@ -347,6 +347,36 @@ class BackendClient:
         )
         return response.json()
 
+    async def get_artist_detail(
+        self,
+        artist_id: int,
+        token: str | None = None,
+    ) -> dict[str, Any]:
+        headers: dict[str, str] | None = None
+        if token:
+            headers = {"Authorization": f"Bearer {token}"}
+        response = await self._request(
+            "GET",
+            f"/api/v1/artists/{artist_id}",
+            headers=headers,
+        )
+        return response.json()
+
+    async def get_artist_catalog_releases(
+        self,
+        artist_id: int,
+        token: str | None = None,
+    ) -> dict[str, Any]:
+        headers: dict[str, str] | None = None
+        if token:
+            headers = {"Authorization": f"Bearer {token}"}
+        response = await self._request(
+            "GET",
+            f"/api/v1/artists/{artist_id}/catalog/releases",
+            headers=headers,
+        )
+        return response.json()
+
     async def get_daily_playlist(
         self, telegram_id: int
     ) -> dict[str, Any]:
