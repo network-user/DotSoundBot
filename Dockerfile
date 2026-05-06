@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS base
+FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/poetry/bin:$PATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -16,24 +17,45 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 # IMPORTANT: build context must be the parent directory that
 # contains BOTH DotSoundBot and DotSoundPrivateCore. Example:
 #   docker build -f DotSoundBot/Dockerfile -t dotsoundbot .
-# Or in docker-compose:
-#   build:
-#     context: ..
-#     dockerfile: DotSoundBot/Dockerfile
 
-WORKDIR /app
+WORKDIR /src
 
 COPY DotSoundPrivateCore /private_core
-COPY DotSoundBot/pyproject.toml DotSoundBot/poetry.lock ./
+COPY DotSoundBot/pyproject.toml DotSoundBot/poetry.lock /src/
 
-# Re-point the relative path dependency to the copied location
 RUN sed -i 's|path = "../DotSoundPrivateCore"|path = "/private_core"|' \
-    pyproject.toml
+    /src/pyproject.toml
 
 RUN poetry install --no-interaction --no-ansi --no-root --only main
 
-COPY DotSoundBot/ .
+COPY DotSoundBot/ /src/
 
-RUN poetry install --no-interaction --no-ansi --only main
+RUN poetry install --no-interaction --no-ansi --only main && \
+    pip freeze --local > /tmp/requirements-runtime.txt
+
+
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN addgroup --system app && adduser --system --ingroup app app && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /tmp/requirements-runtime.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
+
+COPY DotSoundBot/ /app/
+
+USER app
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8081/health || exit 1
 
 CMD ["python", "main.py"]

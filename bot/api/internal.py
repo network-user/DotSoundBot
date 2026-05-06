@@ -30,6 +30,12 @@ _MAX_ALERT_TITLE = 200
 _MAX_ALERT_DETAILS = 1500
 
 
+async def handle_health(
+    request: web.Request,
+) -> web.Response:
+    return web.json_response({"status": "ok"})
+
+
 def _error_response(code: str, status: int) -> web.Response:
     """Generic error response without leaking exception text."""
     return web.json_response({"error": code}, status=status)
@@ -404,6 +410,7 @@ def create_internal_app(
 ) -> web.Application:
     app = web.Application()
     app["bot"] = bot
+    app.router.add_get("/health", handle_health)
     app.router.add_get(
         PROFILE_AUDIOS_ENDPOINT_TEMPLATE,
         handle_profile_audios,

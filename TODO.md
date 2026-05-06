@@ -34,9 +34,9 @@
 
 ## Инфраструктура
 
-- [ ] Dockerfile для бота (production)
+- [x] Dockerfile для бота (production)
 - [ ] docker-compose.yml с logging driver
-- [ ] Health endpoint для мониторинга
+- [x] Health endpoint для мониторинга
 
 ## Безопасность
 

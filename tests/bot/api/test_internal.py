@@ -13,6 +13,7 @@ from dirty_equals import HasLen, IsPartialDict
 from bot.api.internal import (
     _check_secret,
     create_internal_app,
+    handle_health,
     handle_admin_alert,
     handle_download_audio,
     handle_profile_audios,
@@ -50,6 +51,21 @@ def _make_request(
     elif json_error:
         req.json = AsyncMock(side_effect=Exception("bad json"))
     return req
+
+
+# ------------------------------------------------------------------
+# handle_health
+# ------------------------------------------------------------------
+
+
+async def test_health_ok() -> None:
+    req = _make_request("GET", "/health")
+
+    resp = await handle_health(req)
+
+    assert resp.status == 200
+    data = json.loads(resp.body)
+    assert data == IsPartialDict(status="ok")
 
 
 # ------------------------------------------------------------------
@@ -800,4 +816,5 @@ def test_create_internal_app() -> None:
         if hasattr(r, "resource") and r.resource is not None
     ]
     assert len(routes) >= 5
+    assert "/health" in routes
     assert "/internal/admin-alert" in routes
