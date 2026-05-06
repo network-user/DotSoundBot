@@ -90,6 +90,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Ещё 3 →",
         "en": "3 more →",
     },
+    "inline.player.prev3": {
+        "ru": "← Предыдущие 3",
+        "en": "← Previous 3",
+    },
     "inline.player.back_main": {
         "ru": "← Главное меню",
         "en": "← Main menu",
@@ -394,6 +398,10 @@ STRINGS: dict[str, dict[str, str]] = {
     "player.no_more": {
         "ru": "Больше треков нет.",
         "en": "No more tracks.",
+    },
+    "player.no_prev": {
+        "ru": "Предыдущей пачки нет.",
+        "en": "No previous batch.",
     },
     "player.like_on": {
         "ru": "Лайк добавлен",

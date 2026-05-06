@@ -33,6 +33,12 @@ class PlayerSession:
     )
     prefetched_total: int = 0
     prefetched_has_more: bool = False
+    current_tracks: list[dict[str, Any]] = field(
+        default_factory=list
+    )
+    history_batches: list[dict[str, Any]] = field(
+        default_factory=list
+    )
     total_tracks: int = 0
     shuffle_enabled: bool = False
 

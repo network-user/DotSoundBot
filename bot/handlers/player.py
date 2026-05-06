@@ -542,6 +542,7 @@ async def on_player_source(
             has_more,
             lang,
             shuffle_enabled=False,
+            can_go_back=False,
         ),
     )
 
@@ -556,6 +557,8 @@ async def on_player_source(
         control_msg.message_id
     )
     session.track_ids = [t["id"] for t in tracks]
+    session.current_tracks = tracks
+    session.history_batches = []
     session.page = 1
     session.has_more = has_more
     session.total_tracks = total
@@ -671,9 +674,20 @@ async def on_player_next(
             prefetched=prefetched_urls,
         )
 
+    session.history_batches.append(
+        {
+            "tracks": session.current_tracks,
+            "page": session.page,
+            "has_more": session.has_more,
+            "total": session.total_tracks,
+        }
+    )
+    if len(session.history_batches) > 10:
+        session.history_batches.pop(0)
     if not session.shuffle_enabled:
         session.page += 1
     session.audio_message_ids = new_ids
+    session.current_tracks = tracks
     session.track_ids = [t["id"] for t in tracks]
     session.has_more = has_more
     session.total_tracks = total
@@ -696,6 +710,7 @@ async def on_player_next(
                 has_more,
                 lang,
                 shuffle_enabled=session.shuffle_enabled,
+                can_go_back=bool(session.history_batches),
             ),
         )
     except Exception:
@@ -743,10 +758,88 @@ async def on_player_shuffle(
                 session.has_more,
                 lang,
                 shuffle_enabled=session.shuffle_enabled,
+                can_go_back=bool(session.history_batches),
             ),
         )
     except Exception:
         return
+
+
+@router.callback_query(F.data == "player:prev")
+async def on_player_prev(
+    callback: CallbackQuery,
+) -> None:
+    if not callback.from_user:
+        await callback.answer()
+        return
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
+    session = player_sessions.get(callback.from_user.id)
+    if not session:
+        await callback.answer(
+            tr("player.session_expired", lang)
+        )
+        return
+    if not session.history_batches:
+        await callback.answer(tr("player.no_prev", lang))
+        return
+    await callback.answer(tr("player.loading", lang))
+    snapshot = session.history_batches.pop()
+    tracks = snapshot.get("tracks") or []
+    page = int(snapshot.get("page", 1))
+    has_more = bool(snapshot.get("has_more", False))
+    total = int(snapshot.get("total", 0))
+    if not tracks:
+        await callback.answer(tr("player.no_prev", lang))
+        return
+    session.prefetched_tracks = []
+    session.prefetched_urls = {}
+    session.prefetched_total = 0
+    session.prefetched_has_more = False
+    session.touch()
+    async with BackendClient() as client:
+        token, _ = await _get_token(
+            client, callback.from_user.id
+        )
+        new_ids = await _edit_audio_batch(
+            callback.bot,
+            client,
+            session,
+            tracks,
+            token,
+            lang,
+        )
+    session.page = page
+    session.audio_message_ids = new_ids
+    session.current_tracks = tracks
+    session.track_ids = [t["id"] for t in tracks]
+    session.has_more = has_more
+    session.total_tracks = total
+    text = format_player_message(
+        session.source,
+        tracks,
+        page=session.page,
+        total=total,
+        lang=lang,
+    )
+    try:
+        await callback.bot.edit_message_text(
+            chat_id=session.chat_id,
+            message_id=session.control_message_id,
+            text=text,
+            parse_mode="HTML",
+            reply_markup=player_control_kb(
+                len(new_ids),
+                has_more,
+                lang,
+                shuffle_enabled=session.shuffle_enabled,
+                can_go_back=bool(session.history_batches),
+            ),
+        )
+    except Exception:
+        pass
+    _start_prefetch(session, callback.from_user.id)
 
 
 @router.callback_query(

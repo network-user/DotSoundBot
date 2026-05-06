@@ -847,6 +847,7 @@ async def test_on_player_next_with_prefetched(
 
     assert session.page == 2
     assert session.has_more is True
+    assert len(session.history_batches) == 1
 
 
 @patch("bot.handlers.player._get_token")
@@ -885,6 +886,76 @@ async def test_on_player_next_no_tracks_left(
 
     cb.answer.assert_awaited()
     assert session.has_more is False
+
+
+async def test_on_player_prev_no_history() -> None:
+    from bot.handlers.player import on_player_prev
+
+    cb = _make_callback("player:prev")
+    session = PlayerSession(
+        chat_id=100, user_id=1, source="my"
+    )
+    with patch(
+        "bot.handlers.player.player_sessions"
+    ) as mock_mgr:
+        mock_mgr.get = MagicMock(return_value=session)
+        await on_player_prev(cb)
+
+    cb.answer.assert_awaited_once()
+    assert "Предыдущей" in cb.answer.call_args[0][0]
+
+
+@patch("bot.handlers.player._get_token")
+@patch("bot.handlers.player.BackendClient")
+async def test_on_player_prev_restores_history(
+    mock_cls: MagicMock,
+    mock_get_token: AsyncMock,
+) -> None:
+    from bot.handlers.player import on_player_prev
+
+    mock_get_token.return_value = ("tok", 5)
+    session = PlayerSession(
+        chat_id=100, user_id=1, source="my"
+    )
+    session.control_message_id = 70
+    session.audio_message_ids = [31, 32]
+    session.current_tracks = _tracks(2)
+    session.track_ids = [1, 2]
+    session.page = 2
+    session.has_more = True
+    session.total_tracks = 9
+    session.history_batches = [
+        {
+            "tracks": _tracks(2),
+            "page": 1,
+            "has_more": True,
+            "total": 9,
+        }
+    ]
+
+    client = AsyncMock()
+    mock_cls.return_value.__aenter__ = AsyncMock(
+        return_value=client
+    )
+    mock_cls.return_value.__aexit__ = AsyncMock(
+        return_value=False
+    )
+    cb = _make_callback("player:prev")
+    with patch(
+        "bot.handlers.player.player_sessions"
+    ) as mock_mgr:
+        mock_mgr.get = MagicMock(return_value=session)
+        with patch(
+            "bot.handlers.player._edit_audio_batch",
+            new_callable=AsyncMock,
+            return_value=[11, 12],
+        ):
+            await on_player_prev(cb)
+
+    assert session.page == 1
+    assert session.audio_message_ids == [11, 12]
+    assert session.history_batches == []
+    cb.bot.edit_message_text.assert_awaited_once()
 
 
 @patch("bot.handlers.player._get_token")

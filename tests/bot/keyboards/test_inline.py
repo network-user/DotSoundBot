@@ -148,21 +148,30 @@ def test_player_source_kb() -> None:
 
 
 @pytest.mark.parametrize(
-    ("track_count", "has_more", "expect_next"),
+    (
+        "track_count",
+        "has_more",
+        "can_go_back",
+        "expect_next",
+        "expect_prev",
+    ),
     [
-        (3, True, True),
-        (2, False, False),
+        (3, True, True, True, True),
+        (2, False, False, False, False),
     ],
 )
 def test_player_control_kb(
     track_count: int,
     has_more: bool,
+    can_go_back: bool,
     expect_next: bool,
+    expect_prev: bool,
 ) -> None:
     kb = player_control_kb(
         track_count=track_count,
         has_more=has_more,
         lang="ru",
+        can_go_back=can_go_back,
     )
 
     buttons = [
@@ -176,6 +185,9 @@ def test_player_control_kb(
     assert (
         "player:next" in data
     ) == expect_next
+    assert (
+        "player:prev" in data
+    ) == expect_prev
     assert "player:shuffle" in data
     assert "player:menu" in data
 

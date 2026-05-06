@@ -182,6 +182,7 @@ def player_control_kb(
     has_more: bool,
     lang: str,
     shuffle_enabled: bool = False,
+    can_go_back: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for i in range(track_count):
@@ -193,6 +194,11 @@ def player_control_kb(
         builder.button(
             text=tr("inline.player.more3", lang),
             callback_data="player:next",
+        )
+    if can_go_back:
+        builder.button(
+            text=tr("inline.player.prev3", lang),
+            callback_data="player:prev",
         )
     builder.button(
         text=tr(
@@ -210,6 +216,8 @@ def player_control_kb(
     like_row = list(range(track_count))
     rows: list[int] = [len(like_row)]
     if has_more:
+        rows.append(1)
+    if can_go_back:
         rows.append(1)
     rows.append(1)
     rows.append(1)
