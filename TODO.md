@@ -30,7 +30,7 @@
 ## Логирование
 
 - [x] JSON structlog для production (json_output параметр)
-- [ ] Structured logging для всех handlers (bind context)
+- [x] Structured logging для всех handlers (bind context)
 
 ## Инфраструктура
 

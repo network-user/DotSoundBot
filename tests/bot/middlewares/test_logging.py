@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -84,3 +84,30 @@ async def test_inline_query_user_extracted() -> None:
     await mw(handler, update, {})
 
     handler.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_binds_structured_context_fields() -> None:
+    mw = LoggingMiddleware()
+    handler = AsyncMock(return_value="ok")
+    handler.__name__ = "test_handler"
+    update = _make_update(
+        user_id=7, event_type="callback_query"
+    )
+    update.callback_query.data = "player:next"
+    update.callback_query.message = MagicMock()
+    update.callback_query.message.chat = MagicMock()
+    update.callback_query.message.chat.id = 555
+
+    with patch(
+        "bot.middlewares.logging.structlog.contextvars.bind_contextvars"
+    ) as bind_ctx:
+        result = await mw(handler, update, {})
+
+    assert result == "ok"
+    bind_ctx.assert_called_once()
+    kwargs = bind_ctx.call_args.kwargs
+    assert kwargs["handler_name"] == "test_handler"
+    assert kwargs["user_id"] == 7
+    assert kwargs["chat_id"] == 555
+    assert kwargs["callback_data"] == "player:next"
