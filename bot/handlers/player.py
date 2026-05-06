@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import random
 import time
 from typing import Any
 
@@ -395,7 +396,7 @@ def _start_prefetch(
     session: PlayerSession,
     telegram_id: int,
 ) -> None:
-    if session.has_more:
+    if session.has_more and not session.shuffle_enabled:
         asyncio.create_task(
             _prefetch_next(session, telegram_id)
         )
@@ -537,7 +538,10 @@ async def on_player_source(
         text=text,
         parse_mode="HTML",
         reply_markup=player_control_kb(
-            len(msg_ids), has_more, lang
+            len(msg_ids),
+            has_more,
+            lang,
+            shuffle_enabled=False,
         ),
     )
 
@@ -554,6 +558,8 @@ async def on_player_source(
     session.track_ids = [t["id"] for t in tracks]
     session.page = 1
     session.has_more = has_more
+    session.total_tracks = total
+    session.shuffle_enabled = False
     session.touch()
 
     _start_prefetch(session, telegram_id)
@@ -584,7 +590,10 @@ async def on_player_next(
     session.touch()
 
     prefetched_urls: dict[int, str] | None = None
-    if session.prefetched_tracks:
+    if (
+        not session.shuffle_enabled
+        and session.prefetched_tracks
+    ):
         tracks = session.prefetched_tracks
         total = session.prefetched_total
         has_more = session.prefetched_has_more
@@ -602,15 +611,39 @@ async def on_player_next(
                 client, telegram_id
             )
             try:
+                next_page = session.page + 1
+                if (
+                    session.shuffle_enabled
+                    and session.total_tracks > 0
+                ):
+                    max_page = max(
+                        1,
+                        (
+                            session.total_tracks
+                            + _BATCH_SIZE
+                            - 1
+                        )
+                        // _BATCH_SIZE,
+                    )
+                    next_page = random.randint(
+                        1, max_page
+                    )
                 tracks, total, has_more = (
                     await _fetch_playable_tracks(
                         client,
                         session.source,
                         token,
                         session.internal_user_id,
-                        page=session.page + 1,
+                        page=next_page,
                     )
                 )
+                if session.shuffle_enabled:
+                    max_page = max(
+                        1,
+                        (total + _BATCH_SIZE - 1)
+                        // _BATCH_SIZE,
+                    )
+                    session.page = min(next_page, max_page)
             except BackendError:
                 await callback.answer(
                     tr("player.load_page_error", lang)
@@ -638,10 +671,12 @@ async def on_player_next(
             prefetched=prefetched_urls,
         )
 
-    session.page += 1
+    if not session.shuffle_enabled:
+        session.page += 1
     session.audio_message_ids = new_ids
     session.track_ids = [t["id"] for t in tracks]
     session.has_more = has_more
+    session.total_tracks = total
 
     text = format_player_message(
         session.source,
@@ -657,13 +692,61 @@ async def on_player_next(
             text=text,
             parse_mode="HTML",
             reply_markup=player_control_kb(
-                len(new_ids), has_more, lang
+                len(new_ids),
+                has_more,
+                lang,
+                shuffle_enabled=session.shuffle_enabled,
             ),
         )
     except Exception:
         pass
 
     _start_prefetch(session, telegram_id)
+
+
+@router.callback_query(F.data == "player:shuffle")
+async def on_player_shuffle(
+    callback: CallbackQuery,
+) -> None:
+    if not callback.from_user:
+        await callback.answer()
+        return
+    lang = resolve_lang(
+        callback.from_user.language_code
+    )
+    session = player_sessions.get(callback.from_user.id)
+    if not session:
+        await callback.answer(
+            tr("player.session_short", lang)
+        )
+        return
+    session.shuffle_enabled = not session.shuffle_enabled
+    session.prefetched_tracks = []
+    session.prefetched_urls = {}
+    session.prefetched_total = 0
+    session.prefetched_has_more = False
+    session.touch()
+    await callback.answer(
+        tr(
+            "player.shuffle_enabled",
+            lang,
+        )
+        if session.shuffle_enabled
+        else tr("player.shuffle_disabled", lang)
+    )
+    try:
+        await callback.bot.edit_message_reply_markup(
+            chat_id=session.chat_id,
+            message_id=session.control_message_id,
+            reply_markup=player_control_kb(
+                len(session.track_ids),
+                session.has_more,
+                lang,
+                shuffle_enabled=session.shuffle_enabled,
+            ),
+        )
+    except Exception:
+        return
 
 
 @router.callback_query(

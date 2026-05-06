@@ -103,7 +103,10 @@ async def main() -> None:
 
     dp.update.outer_middleware(LoggingMiddleware())
     throttle = ThrottlingMiddleware(
-        rate_limit=settings.throttle_rate_limit
+        rate_limit=settings.throttle_rate_limit,
+        callback_rate_limit=(
+            settings.throttle_callback_rate_limit
+        ),
     )
     dp.message.middleware(throttle)
     dp.callback_query.middleware(throttle)

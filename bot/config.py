@@ -21,6 +21,7 @@ class BotSettings(BaseSettings):
     internal_api_host: str = "127.0.0.1"
     internal_api_secret: str = ""
     throttle_rate_limit: float = 0.7
+    throttle_callback_rate_limit: float = 0.35
     admin_alert_chat_id_allowlist: str = ""
 
 

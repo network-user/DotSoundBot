@@ -33,6 +33,8 @@ class PlayerSession:
     )
     prefetched_total: int = 0
     prefetched_has_more: bool = False
+    total_tracks: int = 0
+    shuffle_enabled: bool = False
 
     def touch(self) -> None:
         self.last_active = time.time()

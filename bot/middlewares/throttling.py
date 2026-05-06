@@ -45,8 +45,17 @@ class ThrottlingMiddleware(BaseMiddleware):
     instead of running the handler.
     """
 
-    def __init__(self, rate_limit: float = 0.7) -> None:
+    def __init__(
+        self,
+        rate_limit: float = 0.7,
+        callback_rate_limit: float | None = None,
+    ) -> None:
         self._rate_limit = rate_limit
+        self._callback_rate_limit = (
+            callback_rate_limit
+            if callback_rate_limit is not None
+            else rate_limit
+        )
         self._last_event: dict[int, float] = {}
         self._last_cleanup: float = 0.0
 
@@ -123,7 +132,17 @@ class ThrottlingMiddleware(BaseMiddleware):
         self._maybe_cleanup(now)
         last = self._last_event.get(user_id, 0.0)
 
-        if now - last < self._rate_limit:
+        effective_rate_limit = self._rate_limit
+        data_v = getattr(event, "data", None)
+        if (
+            isinstance(event, CallbackQuery)
+            or isinstance(data_v, str)
+        ):
+            effective_rate_limit = (
+                self._callback_rate_limit
+            )
+
+        if now - last < effective_rate_limit:
             logger.debug(
                 "throttled",
                 user_id=user_id,

@@ -24,7 +24,7 @@
 - [x] Исправление пагинации (internal_user_id vs telegram_id)
 - [x] Fallback с try/except + свежий URL при ошибках
 - [ ] Расширить источники: плейлисты, подписки, рекомендации
-- [ ] Shuffle / Random режим
+- [x] Shuffle / Random режим
 - [ ] Кнопка "Назад" (предыдущая пачка)
 
 ## Логирование
@@ -42,7 +42,7 @@
 
 - [x] Scoped JWT через internal-token (backend)
 - [x] TTL-aware кэш токенов (12 мин)
-- [ ] Rate limit на callback_query плеера (per-user)
+- [x] Rate limit на callback_query плеера (per-user)
 
 ## Интеграция с backend
 

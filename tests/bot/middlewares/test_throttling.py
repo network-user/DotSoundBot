@@ -121,3 +121,50 @@ async def test_notify_throttled_inline() -> None:
     iq.answer = AsyncMock()
     await mw._notify_throttled(iq)
     iq.answer.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_callback_uses_dedicated_rate_limit() -> None:
+    mw = ThrottlingMiddleware(
+        rate_limit=1.0, callback_rate_limit=0.2
+    )
+    handler = AsyncMock(return_value="ok")
+    event = MagicMock(spec=CallbackQuery)
+    event.data = "player:next"
+    event.answer = AsyncMock()
+    event.from_user = MagicMock()
+    event.from_user.id = 42
+    event.from_user.language_code = "ru"
+
+    with patch(
+        "bot.middlewares.throttling.time.monotonic",
+        side_effect=[100.0, 100.3],
+    ):
+        first = await mw(handler, event, {})
+        second = await mw(handler, event, {})
+
+    assert first == "ok"
+    assert second == "ok"
+    assert handler.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_message_keeps_generic_rate_limit() -> None:
+    mw = ThrottlingMiddleware(
+        rate_limit=1.0, callback_rate_limit=0.2
+    )
+    handler = AsyncMock(return_value="ok")
+    event = _make_event(user_id=7)
+    event.answer = AsyncMock()
+    event.from_user.language_code = "ru"
+
+    with patch(
+        "bot.middlewares.throttling.time.monotonic",
+        side_effect=[200.0, 200.3],
+    ):
+        first = await mw(handler, event, {})
+        second = await mw(handler, event, {})
+
+    assert first == "ok"
+    assert second is None
+    assert handler.await_count == 1

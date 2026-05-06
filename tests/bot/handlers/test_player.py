@@ -41,6 +41,7 @@ def _make_callback(
     cb.bot.delete_message = AsyncMock()
     cb.bot.edit_message_text = AsyncMock()
     cb.bot.edit_message_media = AsyncMock()
+    cb.bot.edit_message_reply_markup = AsyncMock()
     return cb
 
 
@@ -921,6 +922,73 @@ async def test_on_player_next_backend_error(
     await on_player_next(cb)
 
     cb.answer.assert_awaited()
+
+
+@patch("bot.handlers.player.random.randint", return_value=2)
+@patch("bot.handlers.player._get_token")
+@patch("bot.handlers.player.player_sessions")
+@patch("bot.handlers.player.BackendClient")
+async def test_on_player_next_shuffle_uses_random_page(
+    mock_cls: MagicMock,
+    mock_sessions: MagicMock,
+    mock_get_token: AsyncMock,
+    mock_randint: MagicMock,
+) -> None:
+    from bot.handlers.player import on_player_next
+
+    mock_get_token.return_value = ("tok", 5)
+    session = PlayerSession(
+        chat_id=100, user_id=1, source="my"
+    )
+    session.page = 1
+    session.has_more = True
+    session.shuffle_enabled = True
+    session.total_tracks = 8
+    mock_sessions.get.return_value = session
+
+    client = AsyncMock()
+    client.get_my_tracks = AsyncMock(
+        return_value={"items": _tracks(2), "total": 8}
+    )
+    mock_cls.return_value.__aenter__ = AsyncMock(
+        return_value=client
+    )
+    mock_cls.return_value.__aexit__ = AsyncMock(
+        return_value=False
+    )
+
+    cb = _make_callback("player:next")
+    with patch(
+        "bot.handlers.player._edit_audio_batch",
+        new_callable=AsyncMock,
+        return_value=[11, 12],
+    ):
+        await on_player_next(cb)
+
+    client.get_my_tracks.assert_awaited_once()
+    assert client.get_my_tracks.call_args.kwargs["page"] == 2
+    mock_randint.assert_called_once()
+
+
+async def test_on_player_shuffle_toggles_state() -> None:
+    from bot.handlers.player import on_player_shuffle
+
+    session = PlayerSession(
+        chat_id=100, user_id=1, source="my"
+    )
+    session.control_message_id = 77
+    session.track_ids = [1, 2, 3]
+
+    cb = _make_callback("player:shuffle")
+    with patch(
+        "bot.handlers.player.player_sessions"
+    ) as mock_mgr:
+        mock_mgr.get = MagicMock(return_value=session)
+        await on_player_shuffle(cb)
+
+    assert session.shuffle_enabled is True
+    cb.answer.assert_awaited()
+    cb.bot.edit_message_reply_markup.assert_awaited_once()
 
 
 # ------------------------------------------------------------------

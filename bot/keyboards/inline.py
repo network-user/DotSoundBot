@@ -119,11 +119,11 @@ def track_action_keyboard(
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="Like",
+        text="❤️",
         callback_data=f"like_{track_id}",
     )
     builder.button(
-        text="Dislike",
+        text="💔",
         callback_data=f"dislike_{track_id}",
     )
     builder.button(
@@ -181,11 +181,12 @@ def player_control_kb(
     track_count: int,
     has_more: bool,
     lang: str,
+    shuffle_enabled: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for i in range(track_count):
         builder.button(
-            text=f"Like {i + 1}",
+            text=f"❤️ {i + 1}",
             callback_data=f"player:like:{i}",
         )
     if has_more:
@@ -194,6 +195,15 @@ def player_control_kb(
             callback_data="player:next",
         )
     builder.button(
+        text=tr(
+            "inline.player.shuffle_on",
+            lang,
+        )
+        if shuffle_enabled
+        else tr("inline.player.shuffle_off", lang),
+        callback_data="player:shuffle",
+    )
+    builder.button(
         text=tr("inline.player.back_main", lang),
         callback_data="player:menu",
     )
@@ -201,6 +211,7 @@ def player_control_kb(
     rows: list[int] = [len(like_row)]
     if has_more:
         rows.append(1)
+    rows.append(1)
     rows.append(1)
     builder.adjust(*rows)
     return builder.as_markup()

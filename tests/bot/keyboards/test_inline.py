@@ -176,7 +176,27 @@ def test_player_control_kb(
     assert (
         "player:next" in data
     ) == expect_next
+    assert "player:shuffle" in data
     assert "player:menu" in data
+
+
+def test_player_control_kb_shuffle_enabled_label() -> None:
+    kb = player_control_kb(
+        track_count=1,
+        has_more=True,
+        lang="en",
+        shuffle_enabled=True,
+    )
+    buttons = [
+        btn
+        for row in kb.inline_keyboard
+        for btn in row
+    ]
+    shuffle_buttons = [
+        b for b in buttons if b.callback_data == "player:shuffle"
+    ]
+    assert len(shuffle_buttons) == 1
+    assert "on" in (shuffle_buttons[0].text or "").lower()
 
 
 @patch("bot.keyboards.inline.settings")
