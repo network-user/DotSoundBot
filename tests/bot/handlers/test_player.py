@@ -615,8 +615,8 @@ async def test_on_player_source_success(
     mock_sessions: MagicMock,
     mock_get_token: AsyncMock,
     mock_kb: MagicMock,
-    _mock_set_cached_file_id: AsyncMock,
     mock_get_cached_file_id: AsyncMock,
+    _mock_set_cached_file_id: AsyncMock,
     mock_fmt: MagicMock,
     mock_prefetch: MagicMock,
 ) -> None:
@@ -1367,6 +1367,8 @@ async def test_start_prefetch_creates_task() -> None:
     ) as mock_task:
         _start_prefetch(session, 1)
         mock_task.assert_called_once()
+        task_coro = mock_task.call_args.args[0]
+        task_coro.close()
 
 
 async def test_start_prefetch_skips_no_more() -> None:
