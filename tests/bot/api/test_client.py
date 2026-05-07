@@ -531,6 +531,61 @@ async def test_get_feed_tracks_not_playable(
 
 
 # ------------------------------------------------------------------
+# get_recommendation_tracks / get_playlist_source_tracks
+# ------------------------------------------------------------------
+
+
+async def test_get_recommendation_tracks(
+    client: BackendClient,
+) -> None:
+    resp = _resp(
+        200,
+        {
+            "internal_tracks": [{"id": 1, "source": "soundcloud"}],
+            "global_top": [{"id": 2, "processing_status": "active"}],
+            "external_tracks": [{"id": 1, "source": "soundcloud"}],
+        },
+    )
+    client._client = AsyncMock()
+    client._client.request = AsyncMock(return_value=resp)
+
+    result = await client.get_recommendation_tracks(
+        "tok", page=1, size=3, playable=True
+    )
+
+    assert result == IsPartialDict(total=2, items=HasLen(2))
+
+
+async def test_get_playlist_source_tracks(
+    client: BackendClient,
+) -> None:
+    responses = [
+        _resp(200, [{"id": 10}, {"id": 11}]),
+        _resp(
+            200,
+            {
+                "tracks": [
+                    {"id": 1, "source": "soundcloud"},
+                    {"id": 2, "processing_status": "active"},
+                ]
+            },
+        ),
+        _resp(
+            200,
+            {"tracks": [{"id": 2, "processing_status": "active"}]},
+        ),
+    ]
+    client._client = AsyncMock()
+    client._client.request = AsyncMock(side_effect=responses)
+
+    result = await client.get_playlist_source_tracks(
+        "tok", page=1, size=3, playable=True
+    )
+
+    assert result == IsPartialDict(total=2, items=HasLen(2))
+
+
+# ------------------------------------------------------------------
 # _get_token_for_user
 # ------------------------------------------------------------------
 

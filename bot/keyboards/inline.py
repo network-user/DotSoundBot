@@ -170,6 +170,14 @@ def player_source_kb(lang: str) -> InlineKeyboardMarkup:
         callback_data="player:src:follows",
     )
     builder.button(
+        text=tr("inline.player.playlists", lang),
+        callback_data="player:src:playlists",
+    )
+    builder.button(
+        text=tr("inline.player.recommendations", lang),
+        callback_data="player:src:recommendations",
+    )
+    builder.button(
         text=tr("inline.back.menu", lang),
         callback_data="menu:main",
     )

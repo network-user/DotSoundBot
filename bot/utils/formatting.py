@@ -44,6 +44,10 @@ def format_player_message(
         "liked": tr("fmt.label.liked", lang),
         "feed": tr("fmt.label.feed", lang),
         "follows": tr("fmt.label.follows", lang),
+        "playlists": tr("fmt.label.playlists", lang),
+        "recommendations": tr(
+            "fmt.label.recommendations", lang
+        ),
     }
     label = label_map.get(source, source)
     start = (page - 1) * len(tracks) + 1

@@ -9,8 +9,10 @@ from dotsound_private_core.contracts import (
     DOWNLOAD_AUDIO_ENDPOINT,
     INTERNAL_SECRET_HEADER,
     PROFILE_AUDIOS_ENDPOINT_TEMPLATE,
+    SEND_REMOTE_BACKUP_NOTIFICATION_ENDPOINT,
     SEND_AUTH_CODE_ENDPOINT,
     SEND_LOGIN_NOTIFICATION_ENDPOINT,
+    is_remote_backup_status,
 )
 
 from bot.config import settings
@@ -28,6 +30,12 @@ _SEVERITY_PREFIX = {
 }
 _MAX_ALERT_TITLE = 200
 _MAX_ALERT_DETAILS = 1500
+_MAX_BACKUP_REASON = 600
+_BACKUP_PREFIX = {
+    "started": "🟦",
+    "success": "🟩",
+    "failed": "🟥",
+}
 
 
 async def handle_health(
@@ -405,6 +413,109 @@ async def handle_admin_alert(
         return _error_response("admin_alert_send_failed", 500)
 
 
+async def handle_send_remote_backup_notification(
+    request: web.Request,
+) -> web.Response:
+    if not _check_secret(request):
+        return web.json_response({"error": "forbidden"}, status=403)
+
+    notify_chat_id = settings.backup_notify_telegram_id
+    if not notify_chat_id:
+        return _error_response(
+            "backup_notify_chat_not_configured", 503
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid JSON"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response(
+            {"error": "object expected"},
+            status=400,
+        )
+
+    user_id_raw = body.get("user_id", 0)
+    backup_id = str(body.get("backup_id", "")).strip()
+    status_value = str(body.get("status", "")).strip()
+    timestamp_ms = body.get("timestamp_ms", 0)
+    reason_raw = body.get("reason")
+
+    try:
+        user_id = int(user_id_raw)
+    except (TypeError, ValueError):
+        user_id = 0
+    try:
+        ts_ms = int(timestamp_ms)
+    except (TypeError, ValueError):
+        ts_ms = 0
+
+    if user_id <= 0 or not backup_id or ts_ms <= 0:
+        return web.json_response(
+            {
+                "error": (
+                    "user_id, backup_id, timestamp_ms are required"
+                )
+            },
+            status=400,
+        )
+    if not is_remote_backup_status(status_value):
+        return web.json_response(
+            {"error": "unknown status"},
+            status=400,
+        )
+
+    reason = ""
+    if reason_raw is not None:
+        reason = str(reason_raw).strip()
+    if len(reason) > _MAX_BACKUP_REASON:
+        reason = reason[: _MAX_BACKUP_REASON - 1] + "…"
+
+    safe_backup_id = html_escape(backup_id)
+    safe_status = html_escape(status_value.upper())
+    safe_user_id = html_escape(str(user_id))
+    safe_ts = html_escape(str(ts_ms))
+    prefix = _BACKUP_PREFIX.get(status_value, "ℹ️")
+
+    lines = [
+        f"{prefix} <b>Remote backup {safe_status}</b>",
+        f"user_id=<code>{safe_user_id}</code>",
+        f"backup_id=<code>{safe_backup_id}</code>",
+        f"timestamp_ms=<code>{safe_ts}</code>",
+    ]
+    if reason:
+        lines.append(f"reason: {html_escape(reason)}")
+    text = "\n".join(lines)
+
+    bot: Bot = request.app["bot"]
+    try:
+        await bot.send_message(
+            chat_id=notify_chat_id,
+            text=text,
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+        )
+        logger.info(
+            "remote_backup_notification_sent",
+            user_id=user_id,
+            backup_id=backup_id,
+            status=status_value,
+            chat_id=notify_chat_id,
+        )
+        return web.json_response({"sent": True})
+    except Exception:
+        logger.exception(
+            "remote_backup_notification_send_failed",
+            user_id=user_id,
+            backup_id=backup_id,
+            status=status_value,
+            chat_id=notify_chat_id,
+        )
+        return _error_response(
+            "remote_backup_notification_send_failed", 500
+        )
+
+
 def create_internal_app(
     bot: Bot,
 ) -> web.Application:
@@ -430,5 +541,9 @@ def create_internal_app(
     app.router.add_post(
         ADMIN_ALERT_ENDPOINT,
         handle_admin_alert,
+    )
+    app.router.add_post(
+        SEND_REMOTE_BACKUP_NOTIFICATION_ENDPOINT,
+        handle_send_remote_backup_notification,
     )
     return app

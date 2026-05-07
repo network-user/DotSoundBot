@@ -107,6 +107,7 @@ INFO  bot started polling
 | `BOT_TOKEN`        | Токен бота из @BotFather                 | ✅            | —                       |
 | `BACKEND_BASE_URL` | URL DotSoundBackend                      | —            | `http://localhost:8000` |
 | `LOG_LEVEL`        | Уровень логов (`DEBUG`/`INFO`/`WARNING`) | —            | `INFO`                  |
+| `BACKUP_NOTIFY_TELEGRAM_ID` | Chat ID для backup-уведомлений internal API | — | `0` |
 
 
 ---
@@ -181,6 +182,9 @@ Handlers не содержат бизнес-логики — только выз
 ## Команды разработчика
 
 ```bash
+# Docker Compose (bot + redis + json-file log rotation)
+docker compose up -d --build
+
 # Тесты
 poetry run pytest
 

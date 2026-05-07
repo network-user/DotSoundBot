@@ -86,6 +86,14 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "🔔 Подписки",
         "en": "🔔 Subscriptions",
     },
+    "inline.player.playlists": {
+        "ru": "▤ Плейлисты",
+        "en": "▤ Playlists",
+    },
+    "inline.player.recommendations": {
+        "ru": "✨ Рекомендации",
+        "en": "✨ Recommendations",
+    },
     "inline.player.more3": {
         "ru": "Ещё 3 →",
         "en": "3 more →",
@@ -219,6 +227,18 @@ STRINGS: dict[str, dict[str, str]] = {
     "fmt.label.feed": {
         "ru": "Лента",
         "en": "Feed",
+    },
+    "fmt.label.follows": {
+        "ru": "Подписки",
+        "en": "Subscriptions",
+    },
+    "fmt.label.playlists": {
+        "ru": "Плейлисты",
+        "en": "Playlists",
+    },
+    "fmt.label.recommendations": {
+        "ru": "Рекомендации",
+        "en": "Recommendations",
     },
     "fmt.header": {
         "ru": "🎧 <b>Плеер — {label}</b>\n",

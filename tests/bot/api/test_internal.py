@@ -17,6 +17,7 @@ from bot.api.internal import (
     handle_admin_alert,
     handle_download_audio,
     handle_profile_audios,
+    handle_send_remote_backup_notification,
     handle_send_auth_code,
     handle_send_login_notification,
 )
@@ -801,6 +802,128 @@ async def test_admin_alert_send_fails(
 
 
 # ------------------------------------------------------------------
+# handle_send_remote_backup_notification
+# ------------------------------------------------------------------
+
+
+def _backup_body(**overrides: object) -> bytes:
+    payload = {
+        "user_id": 42,
+        "backup_id": "backup-1",
+        "status": "success",
+        "timestamp_ms": 1715000000000,
+        "reason": None,
+    }
+    payload.update(overrides)
+    return json.dumps(payload).encode()
+
+
+@patch("bot.api.internal.settings")
+async def test_backup_notify_forbidden(
+    mock_settings: MagicMock,
+) -> None:
+    mock_settings.internal_api_secret = "s"
+    mock_settings.backup_notify_telegram_id = 123
+    req = _make_request(
+        "POST",
+        "/internal/send-remote-backup-notification",
+        headers={"X-Internal-Secret": "bad"},
+        body=_backup_body(),
+    )
+
+    resp = await handle_send_remote_backup_notification(req)
+
+    assert resp.status == 403
+
+
+@patch("bot.api.internal.settings")
+async def test_backup_notify_missing_config(
+    mock_settings: MagicMock,
+) -> None:
+    mock_settings.internal_api_secret = "s"
+    mock_settings.backup_notify_telegram_id = 0
+    bot = AsyncMock()
+    req = _make_request(
+        "POST",
+        "/internal/send-remote-backup-notification",
+        headers={"X-Internal-Secret": "s"},
+        body=_backup_body(),
+        bot=bot,
+    )
+
+    resp = await handle_send_remote_backup_notification(req)
+
+    assert resp.status == 503
+
+
+@patch("bot.api.internal.settings")
+async def test_backup_notify_unknown_status(
+    mock_settings: MagicMock,
+) -> None:
+    mock_settings.internal_api_secret = "s"
+    mock_settings.backup_notify_telegram_id = 123
+    bot = AsyncMock()
+    req = _make_request(
+        "POST",
+        "/internal/send-remote-backup-notification",
+        headers={"X-Internal-Secret": "s"},
+        body=_backup_body(status="queued"),
+        bot=bot,
+    )
+
+    resp = await handle_send_remote_backup_notification(req)
+
+    assert resp.status == 400
+
+
+@patch("bot.api.internal.settings")
+async def test_backup_notify_success(
+    mock_settings: MagicMock,
+) -> None:
+    mock_settings.internal_api_secret = "s"
+    mock_settings.backup_notify_telegram_id = 777
+    bot = AsyncMock()
+    bot.send_message = AsyncMock()
+    req = _make_request(
+        "POST",
+        "/internal/send-remote-backup-notification",
+        headers={"X-Internal-Secret": "s"},
+        body=_backup_body(status="failed", reason="network down"),
+        bot=bot,
+    )
+
+    resp = await handle_send_remote_backup_notification(req)
+
+    assert resp.status == 200
+    data = json.loads(resp.body)
+    assert data == IsPartialDict(sent=True)
+    call_kwargs = bot.send_message.await_args.kwargs
+    assert call_kwargs["chat_id"] == 777
+    assert "FAILED" in str(call_kwargs["text"])
+
+
+@patch("bot.api.internal.settings")
+async def test_backup_notify_send_fails(
+    mock_settings: MagicMock,
+) -> None:
+    mock_settings.internal_api_secret = "s"
+    mock_settings.backup_notify_telegram_id = 777
+    bot = AsyncMock()
+    bot.send_message = AsyncMock(side_effect=Exception("api error"))
+    req = _make_request(
+        "POST",
+        "/internal/send-remote-backup-notification",
+        headers={"X-Internal-Secret": "s"},
+        body=_backup_body(),
+        bot=bot,
+    )
+
+    resp = await handle_send_remote_backup_notification(req)
+
+    assert resp.status == 500
+
+
+# ------------------------------------------------------------------
 # create_internal_app
 # ------------------------------------------------------------------
 
@@ -818,3 +941,4 @@ def test_create_internal_app() -> None:
     assert len(routes) >= 5
     assert "/health" in routes
     assert "/internal/admin-alert" in routes
+    assert "/internal/send-remote-backup-notification" in routes

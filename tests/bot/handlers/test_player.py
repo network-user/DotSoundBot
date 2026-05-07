@@ -235,6 +235,54 @@ async def test_fetch_playable_tracks_feed() -> None:
     assert has_more is False
 
 
+async def test_fetch_playable_tracks_playlists() -> None:
+    from bot.handlers.player import (
+        _fetch_playable_tracks,
+    )
+
+    client = AsyncMock()
+    client.get_playlist_source_tracks = AsyncMock(
+        return_value={
+            "items": _tracks(2),
+            "total": 4,
+        }
+    )
+
+    items, total, has_more = (
+        await _fetch_playable_tracks(
+            client, "playlists", "tok", 1, page=1
+        )
+    )
+
+    assert len(items) == 2
+    assert total == 4
+    assert has_more is True
+
+
+async def test_fetch_playable_tracks_recommendations() -> None:
+    from bot.handlers.player import (
+        _fetch_playable_tracks,
+    )
+
+    client = AsyncMock()
+    client.get_recommendation_tracks = AsyncMock(
+        return_value={
+            "items": _tracks(1),
+            "total": 1,
+        }
+    )
+
+    items, total, has_more = (
+        await _fetch_playable_tracks(
+            client, "recommendations", "tok", 1, page=1
+        )
+    )
+
+    assert len(items) == 1
+    assert total == 1
+    assert has_more is False
+
+
 # ------------------------------------------------------------------
 # _is_file_id / _audio_input
 # ------------------------------------------------------------------

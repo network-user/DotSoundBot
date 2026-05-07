@@ -59,3 +59,13 @@ def test_format_player_message_with_total() -> None:
 
     assert "Лайки" in result
     assert "2\u20132 из 5" in result
+
+
+def test_format_player_message_with_follows_label() -> None:
+    tracks = [{"title": "Track X", "artist": "Artist Y"}]
+
+    result = format_player_message(
+        "follows", tracks, page=1, total=1, lang="ru"
+    )
+
+    assert "Подписки" in result

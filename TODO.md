@@ -23,7 +23,7 @@
 - [x] Фильтрация треков без файлов (playable_only на backend)
 - [x] Исправление пагинации (internal_user_id vs telegram_id)
 - [x] Fallback с try/except + свежий URL при ошибках
-- [ ] Расширить источники: плейлисты, подписки, рекомендации
+- [x] Расширить источники: плейлисты, подписки, рекомендации
 - [x] Shuffle / Random режим
 - [x] Кнопка "Назад" (предыдущая пачка)
 
@@ -35,7 +35,7 @@
 ## Инфраструктура
 
 - [x] Dockerfile для бота (production)
-- [ ] docker-compose.yml с logging driver
+- [x] docker-compose.yml с logging driver
 - [x] Health endpoint для мониторинга
 
 ## Безопасность
@@ -47,7 +47,7 @@
 ## Интеграция с backend
 
 - [ ] WebSocket: приём player.command для синхронизации с Mini App
-- [ ] Уведомления о бэкапах через бота (BACKUP_NOTIFY_TELEGRAM_ID)
+- [x] Уведомления о бэкапах через бота (BACKUP_NOTIFY_TELEGRAM_ID)
 
 ---
 

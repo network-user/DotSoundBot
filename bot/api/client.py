@@ -347,6 +347,110 @@ class BackendClient:
         )
         return response.json()
 
+    @staticmethod
+    def _is_playable_track(track: dict[str, Any]) -> bool:
+        return bool(
+            track.get("source") == "soundcloud"
+            or track.get("processing_status") == "active"
+        )
+
+    @staticmethod
+    def _page_items(
+        items: list[dict[str, Any]], page: int, size: int
+    ) -> dict[str, Any]:
+        total = len(items)
+        start = max(0, (page - 1) * size)
+        end = start + size
+        return {"items": items[start:end], "total": total}
+
+    async def get_recommendation_tracks(
+        self,
+        token: str,
+        page: int = 1,
+        size: int = 3,
+        playable: bool = False,
+    ) -> dict[str, Any]:
+        response = await self._request(
+            "GET",
+            "/api/v1/recommendations/daily-playlist",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
+        )
+        data: dict[str, Any] = response.json()
+        combined: list[dict[str, Any]] = []
+        seen: set[int] = set()
+        groups = (
+            data.get("internal_tracks", []),
+            data.get("global_top", []),
+            data.get("external_tracks", []),
+        )
+        for group in groups:
+            if not isinstance(group, list):
+                continue
+            for track in group:
+                if not isinstance(track, dict):
+                    continue
+                track_id = track.get("id")
+                if not isinstance(track_id, int):
+                    continue
+                if track_id in seen:
+                    continue
+                if playable and not self._is_playable_track(track):
+                    continue
+                seen.add(track_id)
+                combined.append(track)
+        return self._page_items(combined, page, size)
+
+    async def get_playlist_source_tracks(
+        self,
+        token: str,
+        page: int = 1,
+        size: int = 3,
+        playable: bool = False,
+    ) -> dict[str, Any]:
+        headers = {"Authorization": f"Bearer {token}"}
+        playlists_resp = await self._request(
+            "GET",
+            "/api/v1/playlists",
+            headers=headers,
+        )
+        playlists_data = playlists_resp.json()
+        if not isinstance(playlists_data, list):
+            return {"items": [], "total": 0}
+        playlists: list[dict[str, Any]] = [
+            item for item in playlists_data if isinstance(item, dict)
+        ]
+
+        tracks: list[dict[str, Any]] = []
+        seen: set[int] = set()
+        for playlist in playlists:
+            playlist_id = playlist.get("id")
+            if not isinstance(playlist_id, int):
+                continue
+            detail = await self._request(
+                "GET",
+                f"/api/v1/playlists/{playlist_id}",
+                headers=headers,
+            )
+            payload = detail.json()
+            pl_tracks = payload.get("tracks", [])
+            if not isinstance(pl_tracks, list):
+                continue
+            for track in pl_tracks:
+                if not isinstance(track, dict):
+                    continue
+                track_id = track.get("id")
+                if not isinstance(track_id, int):
+                    continue
+                if track_id in seen:
+                    continue
+                if playable and not self._is_playable_track(track):
+                    continue
+                seen.add(track_id)
+                tracks.append(track)
+        return self._page_items(tracks, page, size)
+
     async def get_artist_detail(
         self,
         artist_id: int,
