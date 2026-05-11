@@ -140,6 +140,10 @@ STRINGS: dict[str, dict[str, str]] = {
             "Listen. Share. Discover."
         ),
     },
+    "artists.detail_error": {
+        "ru": "Не удалось получить карточку артиста.",
+        "en": "Failed to load artist card.",
+    },
     "base.about.title": {
         "ru": (
             "ℹ️ <b>О проекте .sound</b>\n\n"

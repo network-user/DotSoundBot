@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import httpx
@@ -422,17 +423,31 @@ class BackendClient:
             item for item in playlists_data if isinstance(item, dict)
         ]
 
+        playlist_ids = [
+            playlist.get("id")
+            for playlist in playlists
+            if isinstance(playlist.get("id"), int)
+        ]
+        if not playlist_ids:
+            return {"items": [], "total": 0}
+
+        details = await asyncio.gather(
+            *(
+                self._request(
+                    "GET",
+                    f"/api/v1/playlists/{pid}",
+                    headers=headers,
+                )
+                for pid in playlist_ids
+            ),
+            return_exceptions=True,
+        )
+
         tracks: list[dict[str, Any]] = []
         seen: set[int] = set()
-        for playlist in playlists:
-            playlist_id = playlist.get("id")
-            if not isinstance(playlist_id, int):
+        for detail in details:
+            if isinstance(detail, BaseException):
                 continue
-            detail = await self._request(
-                "GET",
-                f"/api/v1/playlists/{playlist_id}",
-                headers=headers,
-            )
             payload = detail.json()
             pl_tracks = payload.get("tracks", [])
             if not isinstance(pl_tracks, list):

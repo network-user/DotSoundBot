@@ -3,7 +3,7 @@ from aiogram import F, Router
 from aiogram.types import Message
 
 from bot.api.client import BackendClient, BackendError
-from bot.i18n.core import resolve_lang
+from bot.i18n.core import resolve_lang, tr
 from bot.utils.formatting import safe_html
 
 router = Router()
@@ -40,7 +40,7 @@ async def cmd_artist_detail(message: Message) -> None:
                 status=exc.status_code,
             )
             await message.answer(
-                "Не удалось получить карточку артиста."
+                tr("artists.detail_error", lang)
             )
             return
     name = safe_html(str(artist.get("name", "")), 120)
