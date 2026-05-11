@@ -132,7 +132,7 @@ async def on_playlist_selected(
             nempty = tr("playlists.no_tracks", lang)
             tracks_text = (
                 "\n".join(
-                    f"🎵 {t.get('title', 'Unknown')}"
+                    f"🎵 {safe_html(t.get('title', 'Unknown'), 80)}"
                     for t in tracks[:10]
                 )
                 if tracks

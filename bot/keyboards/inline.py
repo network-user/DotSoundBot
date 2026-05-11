@@ -221,8 +221,9 @@ def player_control_kb(
         text=tr("inline.player.back_main", lang),
         callback_data="player:menu",
     )
-    like_row = list(range(track_count))
-    rows: list[int] = [len(like_row)]
+    rows: list[int] = []
+    if track_count:
+        rows.append(track_count)
     if has_more:
         rows.append(1)
     if can_go_back:

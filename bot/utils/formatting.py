@@ -26,10 +26,13 @@ def format_main_menu_welcome(
     )
 
 
-def safe_html(text: str | None, max_len: int) -> str:
+def safe_html(text: str | None, max_len: int | None = None) -> str:
     if not text:
         return ""
-    return html_escape(truncate(str(text), max_len))
+    s = str(text)
+    if max_len is not None:
+        s = truncate(s, max_len)
+    return html_escape(s)
 
 
 def format_player_message(
@@ -38,6 +41,7 @@ def format_player_message(
     page: int,
     total: int | None = None,
     lang: str = "en",
+    page_size: int | None = None,
 ) -> str:
     label_map = {
         "my": tr("fmt.label.my", lang),
@@ -50,7 +54,8 @@ def format_player_message(
         ),
     }
     label = label_map.get(source, source)
-    start = (page - 1) * len(tracks) + 1
+    effective_size = page_size if page_size is not None else len(tracks)
+    start = (page - 1) * effective_size + 1
     end = start + len(tracks) - 1
     no_title = tr("fmt.untitled", lang)
 

@@ -1,3 +1,4 @@
+import hmac
 import io
 from typing import Any
 
@@ -60,13 +61,9 @@ def _check_secret(request: web.Request) -> bool:
         logger.error("internal_api_secret_not_configured")
         return False
     token = request.headers.get(INTERNAL_SECRET_HEADER, "")
-    ok = token == expected
+    ok = hmac.compare_digest(token, expected)
     if not ok:
-        logger.warning(
-            "internal_auth_failed",
-            expected_len=len(expected),
-            received_len=len(token),
-        )
+        logger.warning("internal_auth_failed")
     return ok
 
 
@@ -76,7 +73,12 @@ async def handle_profile_audios(
     if not _check_secret(request):
         return web.json_response({"error": "forbidden"}, status=403)
 
-    user_id = int(request.match_info["user_id"])
+    try:
+        user_id = int(request.match_info["user_id"])
+    except (KeyError, ValueError):
+        return web.json_response(
+            {"error": "invalid user_id"}, status=400
+        )
     bot: Bot = request.app["bot"]
 
     try:

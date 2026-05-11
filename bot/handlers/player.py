@@ -45,17 +45,36 @@ logger: structlog.stdlib.BoundLogger = (
 
 _BATCH_SIZE = 3
 _TOKEN_CACHE_TTL = 720
+_TOKEN_CACHE_MAX = 5000
 
 _token_cache: dict[int, tuple[str, int, float]] = {}
+
+
+def _prune_token_cache(now: float) -> None:
+    if len(_token_cache) <= _TOKEN_CACHE_MAX:
+        return
+    stale = [
+        uid
+        for uid, (_t, _u, issued) in _token_cache.items()
+        if now - issued >= _TOKEN_CACHE_TTL
+    ]
+    for uid in stale:
+        _token_cache.pop(uid, None)
+    if len(_token_cache) <= _TOKEN_CACHE_MAX:
+        return
+    overflow = len(_token_cache) - _TOKEN_CACHE_MAX
+    for uid in list(_token_cache)[:overflow]:
+        _token_cache.pop(uid, None)
 
 
 async def _get_token(
     client: BackendClient, telegram_id: int
 ) -> tuple[str, int]:
+    now = time.time()
     entry = _token_cache.get(telegram_id)
     if entry:
         token, uid, issued_at = entry
-        if time.time() - issued_at < _TOKEN_CACHE_TTL:
+        if now - issued_at < _TOKEN_CACHE_TTL:
             return token, uid
 
     data = await client.get_internal_token(
@@ -68,6 +87,7 @@ async def _get_token(
         uid,
         time.time(),
     )
+    _prune_token_cache(now)
     return token, uid
 
 
@@ -556,6 +576,7 @@ async def on_player_source(
         page=1,
         total=total,
         lang=lang,
+        page_size=_BATCH_SIZE,
     )
     control_msg = await callback.bot.send_message(
         chat_id=chat_id,
@@ -722,6 +743,7 @@ async def on_player_next(
         page=session.page,
         total=total,
         lang=lang,
+        page_size=_BATCH_SIZE,
     )
     try:
         await callback.bot.edit_message_text(
@@ -846,6 +868,7 @@ async def on_player_prev(
         page=session.page,
         total=total,
         lang=lang,
+        page_size=_BATCH_SIZE,
     )
     try:
         await callback.bot.edit_message_text(

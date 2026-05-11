@@ -217,10 +217,9 @@ async def on_login_history(
                 for i, entry in enumerate(
                     history, 1
                 ):
+                    raw_dt = entry.get("created_at") or ""
                     dt = html_escape(
-                        entry.get(
-                            "created_at", ""
-                        )[:16].replace("T", ", ")
+                        str(raw_dt)[:16].replace("T", ", ")
                     )
                     device = html_escape(
                         entry.get("device", "—")

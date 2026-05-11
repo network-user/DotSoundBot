@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import redis.asyncio as aioredis
 
 from bot.config import settings
@@ -8,14 +10,17 @@ _FILE_ID_PREFIX = "tg_file_id:"
 _FILE_ID_TTL = 7 * 86400
 
 _redis: aioredis.Redis | None = None
+_redis_lock = asyncio.Lock()
 
 
 async def _get_redis() -> aioredis.Redis:
     global _redis
     if _redis is None:
-        _redis = aioredis.from_url(
-            settings.redis_url
-        )
+        async with _redis_lock:
+            if _redis is None:
+                _redis = aioredis.from_url(
+                    settings.redis_url
+                )
     return _redis
 
 

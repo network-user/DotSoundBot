@@ -167,7 +167,7 @@ async def handle_audio_document(
             safe_title = safe_html(title, 80)
             await message.reply(
                 tr("audio.uploaded_doc", lang)
-                + f"{safe_title}</b>",
+                + f"<b>{safe_title}</b>",
                 parse_mode="HTML",
                 reply_markup=track_action_keyboard(
                     track_id, mini_app_url, lang

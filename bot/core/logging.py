@@ -145,21 +145,23 @@ def configure_logging(
         _redact_processor,
     ]
 
+    final_processors: list[structlog.types.Processor] = list(
+        shared_processors
+    )
     if json_output:
-        renderer: structlog.types.Processor = (
+        final_processors.append(
+            structlog.processors.format_exc_info
+        )
+        final_processors.append(
             structlog.processors.JSONRenderer()
         )
     else:
-        renderer = structlog.dev.ConsoleRenderer(
-            colors=True
+        final_processors.append(
+            structlog.dev.ConsoleRenderer(colors=True)
         )
 
     structlog.configure(
-        processors=shared_processors
-        + [
-            structlog.processors.format_exc_info,
-            renderer,
-        ],
+        processors=final_processors,
         wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),

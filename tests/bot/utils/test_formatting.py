@@ -54,11 +54,16 @@ def test_format_player_message_with_total() -> None:
     ]
 
     result = format_player_message(
-        "liked", tracks, page=2, total=5, lang="ru"
+        "liked",
+        tracks,
+        page=2,
+        total=5,
+        lang="ru",
+        page_size=3,
     )
 
     assert "Лайки" in result
-    assert "2\u20132 из 5" in result
+    assert "4\u20134 из 5" in result
 
 
 def test_format_player_message_with_follows_label() -> None:
