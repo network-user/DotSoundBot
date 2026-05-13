@@ -39,6 +39,27 @@ _BACKUP_PREFIX = {
 }
 
 
+def _mask_user_id(value: Any) -> str:
+    try:
+        s = str(int(value))
+    except (TypeError, ValueError):
+        return "***"
+    if len(s) <= 4:
+        return "*" * len(s)
+    return f"{s[:2]}***{s[-2:]}"
+
+
+def _mask_ip(value: str) -> str:
+    v = value.strip()
+    if ":" in v:
+        parts = v.split(":")
+        return ":".join(parts[:2] + ["…"] if len(parts) > 2 else parts)
+    parts = v.split(".")
+    if len(parts) == 4:
+        return ".".join(parts[:2] + ["x", "x"])
+    return "***"
+
+
 async def handle_health(
     request: web.Request,
 ) -> web.Response:
@@ -360,27 +381,23 @@ async def handle_admin_alert(
         details = details[: _MAX_ALERT_DETAILS - 1] + "…"
 
     bot: Bot = request.app["bot"]
-    safe_title = html_escape(title)
-    safe_details = html_escape(details)
     prefix = _SEVERITY_PREFIX.get(severity, _SEVERITY_PREFIX["info"])
-    safe_event = html_escape(event_type)
-    safe_severity = html_escape(severity.upper())
     lines = [
-        f"{prefix} <b>{safe_title}</b>",
-        (f"<i>{safe_severity} · " f"<code>{safe_event}</code></i>"),
+        f"{prefix} {title}",
+        f"{severity.upper()} · {event_type}",
     ]
-    if safe_details:
+    if details:
         lines.append("")
-        lines.append(safe_details)
+        lines.append(details)
     meta_parts = []
     if user_id is not None:
-        meta_parts.append(f"user_id=<code>{html_escape(str(user_id))}</code>")
+        meta_parts.append(f"user={_mask_user_id(user_id)}")
     if ip:
-        meta_parts.append(f"ip=<code>{html_escape(str(ip))}</code>")
+        meta_parts.append(f"ip={_mask_ip(str(ip))}")
     if ua:
-        meta_parts.append(f"ua=<code>{html_escape(str(ua)[:80])}</code>")
+        meta_parts.append(f"ua={str(ua)[:80]}")
     if ts:
-        meta_parts.append(f"at=<code>{html_escape(str(ts))}</code>")
+        meta_parts.append(f"at={ts}")
     if meta_parts:
         lines.append("")
         lines.append(" · ".join(meta_parts))
@@ -395,7 +412,7 @@ async def handle_admin_alert(
         await bot.send_message(
             chat_id=chat_id_value,
             text=text,
-            parse_mode="HTML",
+            parse_mode=None,
             disable_web_page_preview=True,
         )
         logger.info(
