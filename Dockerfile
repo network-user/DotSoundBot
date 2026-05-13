@@ -2,7 +2,7 @@ FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.3 \
+    POETRY_VERSION=2.3.2 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_CREATE=false \
     PATH="/opt/poetry/bin:$PATH"
@@ -20,11 +20,10 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 
 WORKDIR /src
 
-COPY DotSoundPrivateCore /private_core
+# poetry.lock pins directory url = "../DotSoundPrivateCore" relative to
+# this WORKDIR (/src) -> must exist at /DotSoundPrivateCore, not /private_core.
+COPY DotSoundPrivateCore /DotSoundPrivateCore
 COPY DotSoundBot/pyproject.toml DotSoundBot/poetry.lock /src/
-
-RUN sed -i 's|path = "../DotSoundPrivateCore"|path = "/private_core"|' \
-    /src/pyproject.toml
 
 RUN poetry install --no-interaction --no-ansi --no-root --only main
 
