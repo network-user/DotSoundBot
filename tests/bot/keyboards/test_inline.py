@@ -30,9 +30,10 @@ def test_main_menu_kb_structure(
         for btn in row
     ]
     texts = [b.text for b in buttons]
-    assert any("Плеер" in t for t in texts)
     assert any("Профиль" in t for t in texts)
     assert any("О проекте" in t for t in texts)
+    callbacks = [b.callback_data for b in buttons if b.callback_data]
+    assert "menu:player" not in callbacks
 
 
 def test_about_kb_has_sections() -> None:

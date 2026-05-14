@@ -17,10 +17,6 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
         web_app=WebAppInfo(url=settings.mini_app_url),
     )
     builder.button(
-        text=tr("inline.main.player", lang),
-        callback_data="menu:player",
-    )
-    builder.button(
         text=tr("inline.main.profile", lang),
         callback_data="menu:profile",
     )
@@ -32,7 +28,7 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
         text=tr("inline.main.login_history", lang),
         callback_data="menu:login_history",
     )
-    builder.adjust(1, 1, 2, 1)
+    builder.adjust(1, 2, 1)
     return builder.as_markup()
 
 

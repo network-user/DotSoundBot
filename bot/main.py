@@ -126,7 +126,7 @@ async def main() -> None:
 
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
-            text=".Sound 🎵",
+            text=".sound",
             web_app=WebAppInfo(
                 url=settings.mini_app_url
             ),
