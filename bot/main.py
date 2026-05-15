@@ -37,6 +37,35 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(
 )
 
 
+def _normalize_proxy_url(proxy_url: str) -> str:
+    value = proxy_url.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1].strip()
+    for marker in (" #", "\t#"):
+        if marker in value:
+            value = value.split(marker, 1)[0].strip()
+    return value
+
+
+def _create_telegram_session(
+    proxy_url: str,
+) -> AiohttpSession | None:
+    normalized = _normalize_proxy_url(proxy_url)
+    if not normalized:
+        return None
+    try:
+        session = AiohttpSession(proxy=normalized)
+    except ValueError as exc:
+        logger.error(
+            "telegram_api_proxy_invalid",
+            error_type=type(exc).__name__,
+            detail=str(exc),
+        )
+        return None
+    logger.info("telegram_api_proxy_enabled")
+    return session
+
+
 async def _global_error_handler(
     event: ErrorEvent,
 ) -> None:
@@ -94,11 +123,9 @@ async def main() -> None:
         log_level=settings.log_level,
     )
 
-    telegram_proxy_url = settings.telegram_api_proxy_url.strip()
-    session: AiohttpSession | None = None
-    if telegram_proxy_url:
-        session = AiohttpSession(proxy=telegram_proxy_url)
-        logger.info("telegram_api_proxy_enabled")
+    session = _create_telegram_session(
+        settings.telegram_api_proxy_url,
+    )
     bot = Bot(
         token=settings.bot_token,
         session=session,

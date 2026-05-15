@@ -11,6 +11,29 @@ from aiogram.types import CallbackQuery
 pytestmark = pytest.mark.anyio
 
 
+def test_normalize_proxy_url_strips_env_artifacts() -> None:
+    from bot.main import _normalize_proxy_url
+
+    assert (
+        _normalize_proxy_url('"socks5://127.0.0.1:9050 # tor"')
+        == "socks5://127.0.0.1:9050"
+    )
+
+
+@patch("bot.main.AiohttpSession")
+def test_create_telegram_session_invalid_proxy_falls_back(
+    mock_session_cls: MagicMock,
+) -> None:
+    from bot.main import _create_telegram_session
+
+    mock_session_cls.side_effect = ValueError("Invalid port component")
+
+    assert _create_telegram_session("socks5://127.0.0.1:bad") is None
+    mock_session_cls.assert_called_once_with(
+        proxy="socks5://127.0.0.1:bad"
+    )
+
+
 @patch("bot.main.web")
 @patch("bot.main.create_internal_app")
 @patch("bot.main.Dispatcher")

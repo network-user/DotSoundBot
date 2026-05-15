@@ -14,6 +14,15 @@
 
 ---
 
+- [x] **Telegram Bot API proxy startup guard (2026-05-15)**
+  - Bot startup now normalizes proxy URL env artifacts such as matching
+    quotes and inline comments before constructing aiogram session.
+  - Invalid Telegram API proxy URL no longer crashes the process during
+    startup; the bot logs `telegram_api_proxy_invalid` and falls back to
+    direct Telegram API session.
+  - Added regression tests for proxy normalization and invalid-port
+    fallback.
+
 - [x] **Telegram Bot API proxy (2026-05-15)**
   - Added `TELEGRAM_API_PROXY_URL` so Telegram profile-audio listing and
     file downloads can use a server-side HTTP/SOCKS proxy or Tor endpoint.
