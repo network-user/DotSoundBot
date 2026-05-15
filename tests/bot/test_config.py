@@ -1,3 +1,4 @@
+import pytest
 from unittest.mock import patch
 
 from bot.config import BotSettings
@@ -61,3 +62,43 @@ def test_required_fields_present() -> None:
     assert s.bot_token == "t"
     assert s.backend_base_url == "http://b"
     assert s.mini_app_url == "http://m"
+
+
+def test_internal_api_host_loopback_default() -> None:
+    env = {
+        "BOT_TOKEN": "t",
+        "BACKEND_BASE_URL": "http://b",
+        "MINI_APP_URL": "http://m",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        s = BotSettings(_env_file=None)  # type: ignore[call-arg]
+
+    assert s.internal_api_host == "127.0.0.1"
+    assert s.internal_api_compose_bind is False
+
+
+def test_internal_api_compose_bind_allows_all_interfaces() -> None:
+    env = {
+        "BOT_TOKEN": "t",
+        "BACKEND_BASE_URL": "http://b",
+        "MINI_APP_URL": "http://m",
+        "INTERNAL_API_COMPOSE_BIND": "true",
+        "INTERNAL_API_HOST": "0.0.0.0",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        s = BotSettings(_env_file=None)  # type: ignore[call-arg]
+
+    assert s.internal_api_host == "0.0.0.0"
+    assert s.internal_api_compose_bind is True
+
+
+def test_internal_api_host_non_loopback_without_compose_bind_fails() -> None:
+    env = {
+        "BOT_TOKEN": "t",
+        "BACKEND_BASE_URL": "http://b",
+        "MINI_APP_URL": "http://m",
+        "INTERNAL_API_HOST": "0.0.0.0",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        with pytest.raises(ValueError, match="loopback"):
+            BotSettings(_env_file=None)  # type: ignore[call-arg]
