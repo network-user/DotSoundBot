@@ -20,6 +20,18 @@ def test_normalize_proxy_url_strips_env_artifacts() -> None:
     )
 
 
+def test_split_proxy_urls_supports_comma_separated_list() -> None:
+    from bot.main import _split_proxy_urls
+
+    assert _split_proxy_urls(
+        "socks5://u:p@10.0.0.1:9050,"
+        " socks5://u:p@10.0.0.2:9050"
+    ) == [
+        "socks5://u:p@10.0.0.1:9050",
+        "socks5://u:p@10.0.0.2:9050",
+    ]
+
+
 @patch("bot.main.AiohttpSession")
 def test_create_telegram_session_invalid_proxy_falls_back(
     mock_session_cls: MagicMock,
@@ -32,6 +44,31 @@ def test_create_telegram_session_invalid_proxy_falls_back(
     mock_session_cls.assert_called_once_with(
         proxy="socks5://127.0.0.1:bad"
     )
+
+
+@patch("bot.main.AiohttpSession")
+def test_create_telegram_session_uses_first_valid_proxy_candidate(
+    mock_session_cls: MagicMock,
+) -> None:
+    from bot.main import _create_telegram_session
+
+    valid_session = MagicMock()
+    mock_session_cls.side_effect = [
+        ValueError("Invalid port component"),
+        valid_session,
+    ]
+
+    session = _create_telegram_session(
+        "socks5://127.0.0.1:bad,socks5://127.0.0.1:9050"
+    )
+
+    assert session is valid_session
+    assert mock_session_cls.call_args_list[0].kwargs == {
+        "proxy": "socks5://127.0.0.1:bad"
+    }
+    assert mock_session_cls.call_args_list[1].kwargs == {
+        "proxy": "socks5://127.0.0.1:9050"
+    }
 
 
 @patch("bot.main.web")

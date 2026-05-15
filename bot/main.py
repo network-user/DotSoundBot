@@ -47,23 +47,40 @@ def _normalize_proxy_url(proxy_url: str) -> str:
     return value
 
 
+def _split_proxy_urls(proxy_url: str) -> list[str]:
+    return [
+        normalized
+        for candidate in proxy_url.split(",")
+        if (normalized := _normalize_proxy_url(candidate))
+    ]
+
+
 def _create_telegram_session(
     proxy_url: str,
 ) -> AiohttpSession | None:
-    normalized = _normalize_proxy_url(proxy_url)
-    if not normalized:
+    candidates = _split_proxy_urls(proxy_url)
+    if not candidates:
         return None
-    try:
-        session = AiohttpSession(proxy=normalized)
-    except ValueError as exc:
-        logger.error(
-            "telegram_api_proxy_invalid",
-            error_type=type(exc).__name__,
-            detail=str(exc),
+    for index, candidate in enumerate(candidates, start=1):
+        try:
+            session = AiohttpSession(proxy=candidate)
+        except ValueError as exc:
+            logger.error(
+                "telegram_api_proxy_invalid",
+                proxy_index=index,
+                proxy_count=len(candidates),
+                error_type=type(exc).__name__,
+                detail=str(exc),
+            )
+            continue
+        logger.info(
+            "telegram_api_proxy_enabled",
+            proxy_index=index,
+            proxy_count=len(candidates),
         )
-        return None
-    logger.info("telegram_api_proxy_enabled")
-    return session
+        return session
+    return None
+
 
 
 async def _global_error_handler(

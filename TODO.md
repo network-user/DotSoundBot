@@ -17,6 +17,8 @@
 - [x] **Telegram Bot API proxy startup guard (2026-05-15)**
   - Bot startup now normalizes proxy URL env artifacts such as matching
     quotes and inline comments before constructing aiogram session.
+  - `TELEGRAM_API_PROXY_URL` now accepts comma-separated proxy candidates
+    and uses the first valid URL.
   - Invalid Telegram API proxy URL no longer crashes the process during
     startup; the bot logs `telegram_api_proxy_invalid` and falls back to
     direct Telegram API session.
