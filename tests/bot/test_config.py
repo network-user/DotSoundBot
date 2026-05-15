@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from bot.config import BotSettings
 
@@ -21,6 +22,7 @@ def test_defaults_applied() -> None:
     assert s.redis_url == "redis://localhost:6379/0"
     assert s.internal_api_port == 8081
     assert s.internal_api_secret == ""
+    assert s.telegram_api_proxy_url == ""
 
 
 def test_env_override() -> None:
@@ -33,6 +35,7 @@ def test_env_override() -> None:
         "REDIS_URL": "redis://r:6379/1",
         "INTERNAL_API_PORT": "9090",
         "INTERNAL_API_SECRET": "s3cret",
+        "TELEGRAM_API_PROXY_URL": "socks5://127.0.0.1:9050",
     }
     with patch.dict("os.environ", env, clear=True):
         s = BotSettings(
@@ -46,6 +49,7 @@ def test_env_override() -> None:
     assert s.redis_url == "redis://r:6379/1"
     assert s.internal_api_port == 9090
     assert s.internal_api_secret == "s3cret"
+    assert s.telegram_api_proxy_url == "socks5://127.0.0.1:9050"
 
 
 def test_required_fields_present() -> None:
@@ -99,6 +103,8 @@ def test_internal_api_host_non_loopback_without_compose_bind_fails() -> None:
         "MINI_APP_URL": "http://m",
         "INTERNAL_API_HOST": "0.0.0.0",
     }
-    with patch.dict("os.environ", env, clear=True):
-        with pytest.raises(ValueError, match="loopback"):
-            BotSettings(_env_file=None)  # type: ignore[call-arg]
+    with (
+        patch.dict("os.environ", env, clear=True),
+        pytest.raises(ValueError, match="loopback"),
+    ):
+        BotSettings(_env_file=None)  # type: ignore[call-arg]

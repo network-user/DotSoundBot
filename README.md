@@ -105,6 +105,7 @@ INFO  bot started polling
 | Переменная         | Описание                                 | Обязательная | Значение по умолчанию   |
 | ------------------ | ---------------------------------------- | ------------ | ----------------------- |
 | `BOT_TOKEN`        | Токен бота из @BotFather                 | ✅            | —                       |
+| `TELEGRAM_API_PROXY_URL` | Proxy для Telegram Bot API и скачивания файлов | — | — |
 | `BACKEND_BASE_URL` | URL DotSoundBackend                      | —            | `http://localhost:8000` |
 | `LOG_LEVEL`        | Уровень логов (`DEBUG`/`INFO`/`WARNING`) | —            | `INFO`                  |
 | `BACKUP_NOTIFY_TELEGRAM_ID` | Chat ID для backup-уведомлений internal API | — | `0` |
@@ -231,4 +232,3 @@ poetry run black bot/
 ---
 
 > Связанный репозиторий: [DotSoundBackend](../DotSoundBackend)
-

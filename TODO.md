@@ -14,6 +14,11 @@
 
 ---
 
+- [x] **Telegram Bot API proxy (2026-05-15)**
+  - Added `TELEGRAM_API_PROXY_URL` so Telegram profile-audio listing and
+    file downloads can use a server-side HTTP/SOCKS proxy or Tor endpoint.
+  - Added `aiohttp-socks` dependency for SOCKS proxy support in aiogram.
+
 ## Плеер в боте
 
 - [x] Inline аудио-плеер (3 трека, editMessageMedia)
@@ -51,4 +56,4 @@
 
 ---
 
-*Последнее обновление: 2026-04-13 агентом*
+*Последнее обновление: 2026-05-15 агентом*

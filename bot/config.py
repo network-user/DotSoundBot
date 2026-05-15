@@ -32,6 +32,7 @@ class BotSettings(BaseSettings):
     throttle_callback_rate_limit: float = 0.35
     admin_alert_chat_id_allowlist: str = ""
     backup_notify_telegram_id: int = 0
+    telegram_api_proxy_url: str = ""
 
     @model_validator(mode="after")
     def _validate_internal_api_bind(self) -> Self:

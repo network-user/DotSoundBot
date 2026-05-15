@@ -2,6 +2,7 @@
 import structlog
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.types import (
     CallbackQuery,
@@ -93,11 +94,15 @@ async def main() -> None:
         log_level=settings.log_level,
     )
 
+    telegram_proxy_url = settings.telegram_api_proxy_url.strip()
+    session: AiohttpSession | None = None
+    if telegram_proxy_url:
+        session = AiohttpSession(proxy=telegram_proxy_url)
+        logger.info("telegram_api_proxy_enabled")
     bot = Bot(
         token=settings.bot_token,
-        default=DefaultBotProperties(
-            parse_mode=ParseMode.HTML
-        ),
+        session=session,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher()
 

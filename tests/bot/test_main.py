@@ -33,6 +33,7 @@ async def test_main_startup_and_shutdown(
     mock_settings.debug = False
     mock_settings.mini_app_url = "https://test.app"
     mock_settings.internal_api_port = 8081
+    mock_settings.telegram_api_proxy_url = ""
 
     bot = AsyncMock()
     bot.set_chat_menu_button = AsyncMock()
@@ -84,6 +85,77 @@ async def test_main_startup_and_shutdown(
 @patch("bot.main.web")
 @patch("bot.main.create_internal_app")
 @patch("bot.main.Dispatcher")
+@patch("bot.main.AiohttpSession")
+@patch("bot.main.Bot")
+@patch("bot.main.configure_logging")
+@patch("bot.main.settings")
+async def test_main_configures_telegram_api_proxy(
+    mock_settings: MagicMock,
+    mock_configure: MagicMock,
+    mock_bot_cls: MagicMock,
+    mock_session_cls: MagicMock,
+    mock_dp_cls: MagicMock,
+    mock_create_app: MagicMock,
+    mock_web: MagicMock,
+) -> None:
+    from bot.main import main
+
+    mock_settings.bot_token = "test:token"
+    mock_settings.log_level = "INFO"
+    mock_settings.redact_logs = True
+    mock_settings.redact_log_identifiers = True
+    mock_settings.log_third_party_level = "WARNING"
+    mock_settings.debug = False
+    mock_settings.mini_app_url = "https://test.app"
+    mock_settings.internal_api_host = "127.0.0.1"
+    mock_settings.internal_api_port = 8081
+    mock_settings.telegram_api_proxy_url = "socks5://127.0.0.1:9050"
+
+    proxy_session = MagicMock()
+    mock_session_cls.return_value = proxy_session
+
+    bot = AsyncMock()
+    bot.set_chat_menu_button = AsyncMock()
+    bot.session = AsyncMock()
+    bot.session.close = AsyncMock()
+    mock_bot_cls.return_value = bot
+
+    dp = MagicMock()
+    dp.update = MagicMock()
+    dp.update.outer_middleware = MagicMock()
+    dp.message = MagicMock()
+    dp.message.middleware = MagicMock()
+    dp.callback_query = MagicMock()
+    dp.callback_query.middleware = MagicMock()
+    dp.inline_query = MagicMock()
+    dp.inline_query.middleware = MagicMock()
+    dp.errors = MagicMock()
+    dp.errors.register = MagicMock()
+    dp.include_router = MagicMock()
+    dp.resolve_used_update_types = MagicMock(return_value=[])
+    dp.start_polling = AsyncMock()
+    mock_dp_cls.return_value = dp
+
+    runner = AsyncMock()
+    runner.setup = AsyncMock()
+    runner.cleanup = AsyncMock()
+    mock_web.AppRunner.return_value = runner
+    site = AsyncMock()
+    site.start = AsyncMock()
+    mock_web.TCPSite.return_value = site
+    mock_create_app.return_value = MagicMock()
+
+    await main()
+
+    mock_session_cls.assert_called_once_with(
+        proxy="socks5://127.0.0.1:9050"
+    )
+    assert mock_bot_cls.call_args.kwargs["session"] is proxy_session
+
+
+@patch("bot.main.web")
+@patch("bot.main.create_internal_app")
+@patch("bot.main.Dispatcher")
 @patch("bot.main.Bot")
 @patch("bot.main.configure_logging")
 @patch("bot.main.settings")
@@ -103,6 +175,7 @@ async def test_main_polling_exception_cleanup(
     mock_settings.debug = True
     mock_settings.mini_app_url = "https://test.app"
     mock_settings.internal_api_port = 8081
+    mock_settings.telegram_api_proxy_url = ""
 
     bot = AsyncMock()
     bot.set_chat_menu_button = AsyncMock()
@@ -164,6 +237,7 @@ async def test_main_debug_mode_no_json(
     mock_settings.debug = True
     mock_settings.mini_app_url = "https://test.app"
     mock_settings.internal_api_port = 8081
+    mock_settings.telegram_api_proxy_url = ""
 
     bot = AsyncMock()
     bot.set_chat_menu_button = AsyncMock()
