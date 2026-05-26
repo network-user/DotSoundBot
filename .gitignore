@@ -19,6 +19,7 @@ htmlcov/
 
 # Co-author history rewrite backups (local only)
 .git-coauthor-backups/
+.git-history-backups/
 
 # Misc local caches / artifacts
 *.log
