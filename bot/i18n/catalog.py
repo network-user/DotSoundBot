@@ -131,13 +131,24 @@ STRINGS: dict[str, dict[str, str]] = {
             "Привет, <b>{name}</b>! 👋\n\n"
             "Добро пожаловать в <b>.sound</b> — "
             "музыка без рекламы.\n"
-            "Слушай. Делись. Открывай."
+            "Слушай. Делись. Открывай.\n\n"
+            "<i>Запуская бот, вы соглашаетесь с "
+            "обработкой персональных данных "
+            "(Telegram ID, имя) согласно Политике "
+            "конфиденциальности сервиса. "
+            "Сервис 18+. Подробнее — в мини-приложении: "
+            "Настройки → Юридическая информация.</i>"
         ),
         "en": (
             "Hi, <b>{name}</b>! 👋\n\n"
             "Welcome to <b>.sound</b> — "
             "music without ads.\n"
-            "Listen. Share. Discover."
+            "Listen. Share. Discover.\n\n"
+            "<i>By using this bot you agree to the "
+            "processing of your personal data "
+            "(Telegram ID, name) per our Privacy Policy. "
+            "18+ only. Details in the Mini App: "
+            "Settings → Legal info.</i>"
         ),
     },
     "artists.detail_error": {
