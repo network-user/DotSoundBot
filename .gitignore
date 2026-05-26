@@ -13,8 +13,12 @@ build/
 # Coverage artifacts
 .coverage
 .coverage.*
+coverage.json
 coverage.xml
 htmlcov/
+
+# Co-author history rewrite backups (local only)
+.git-coauthor-backups/
 
 # Misc local caches / artifacts
 *.log
