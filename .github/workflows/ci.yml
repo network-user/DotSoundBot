@@ -1,66 +1,8 @@
-#name: CI
+# Full Bot lint/test CI is intentionally not enabled for the public
+# source-available showcase yet.
 #
-#on:
-#  push:
-#    branches: [main]
-#  pull_request:
-#    branches: [main]
-#
-#jobs:
-#  bot:
-#    name: Bot (lint + tests + coverage)
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          path: DotSoundBot
-#
-#      - name: Check out PrivateCore
-#        uses: actions/checkout@v4
-#        with:
-#          repository: ${{ github.repository_owner }}/DotSoundPrivateCore
-#          token: ${{ secrets.PRIVATE_CORE_TOKEN || github.token }}
-#          path: DotSoundPrivateCore
-#          ref: main
-#
-#      - name: Set up Python 3.12
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: "3.12"
-#
-#      - name: Install poetry
-#        run: pipx install poetry==1.8.3
-#
-#      - name: Install dependencies
-#        working-directory: DotSoundBot
-#        run: poetry install --no-interaction --no-ansi
-#
-#      - name: Ruff
-#        working-directory: DotSoundBot
-#        run: poetry run ruff check bot
-#
-#      - name: Black
-#        working-directory: DotSoundBot
-#        run: poetry run black --check bot
-#
-#      - name: Mypy
-#        working-directory: DotSoundBot
-#        run: poetry run mypy bot
-#        continue-on-error: true
-#
-#      - name: Pytest with coverage
-#        working-directory: DotSoundBot
-#        env:
-#          BOT_TOKEN: "ci:test"
-#          BACKEND_BASE_URL: "http://localhost:8000"
-#          MINI_APP_URL: "https://example.com/mini_app/"
-#          INTERNAL_API_SECRET: "ci-secret"
-#        run: |
-#          poetry run pytest -q --cov=bot --cov-report=term-missing --cov-report=xml
-#
-#      - name: Upload coverage.xml
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: coverage-bot
-#          path: DotSoundBot/coverage.xml
-#          if-no-files-found: warn
+# Why:
+# - The repository depends on the private policy package for complete
+#   installation and Docker builds.
+# - The historical Ruff/Mypy backlog is not advertised as green.
+# - Active public guardrails live in `policy-guardrails.yml`.

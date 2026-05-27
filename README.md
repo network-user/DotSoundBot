@@ -2,9 +2,10 @@
 
 Telegram-бот музыкальной платформы DotSound — загрузка треков, поиск через inline-режим, лайки, открытие Mini App.
 
-> Этот репозиторий опубликован как engineering showcase.
-> Критичная закрытая логика переносится в приватный репозиторий
-> `DotSoundPrivateCore`.
+> Source-available engineering showcase.
+> Репозиторий открыт для чтения кода и оценки инженерных решений.
+> Закрытое ядро `DotSoundPrivateCore` намеренно не публикуется и
+> требуется только для полного локального запуска/сборки.
 
 ---
 
@@ -27,7 +28,7 @@ Telegram-бот музыкальной платформы DotSound — загр�
 
 | Инструмент                           | Версия  | Зачем                                           |
 | ------------------------------------ | ------- | ----------------------------------------------- |
-| Python                               | 3.11+   | Запуск бота                                     |
+| Python                               | 3.12    | Запуск бота                                     |
 | [Poetry](https://python-poetry.org/) | любая   | Управление зависимостями                        |
 | Telegram Bot Token                   | —       | Получить у [@BotFather](https://t.me/BotFather) |
 | DotSoundBackend                      | запущен | Бот — тонкий клиент, вся логика на бэкенде      |
@@ -39,12 +40,18 @@ Telegram-бот музыкальной платформы DotSound — загр�
 
 ## Быстрый старт
 
+Этот раздел описывает запуск для владельцев полного DotSound-workspace.
+Публичный showcase-клон без соседнего приватного
+`DotSoundPrivateCore` предназначен для code review, а не для
+самостоятельного production/development запуска.
+
 ### Шаг 1 — Клонируйте и установите зависимости
 
 ```bash
 git clone <repo-url>
 cd DotSoundBot
 
+# Требуется соседний приватный пакет ../DotSoundPrivateCore.
 poetry install
 ```
 
@@ -53,7 +60,7 @@ poetry install
 1. Откройте Telegram и найдите [@BotFather](https://t.me/BotFather)
 2. Отправьте команду `/newbot`
 3. Следуйте инструкциям, придумайте имя и username бота
-4. Скопируйте выданный токен вида `123456789:AABBccDDeeFFggHH...`
+4. Скопируйте выданный токен в локальный `.env`.
 
 ### Шаг 3 — Настройте переменные окружения
 
@@ -64,7 +71,7 @@ cp .env.example .env
 Откройте `.env` и вставьте токен:
 
 ```env
-BOT_TOKEN=123456789:AABBccDDeeFFggHH...
+BOT_TOKEN=<telegram-bot-token>
 BACKEND_BASE_URL=http://localhost:8000
 LOG_LEVEL=INFO
 ```
@@ -159,8 +166,10 @@ DotSoundBackend REST API
 
 Handlers не содержат бизнес-логики — только вызов `BackendClient` и формирование ответа пользователю.
 
-Приватное ядро (`DotSoundPrivateCore`) используется для internal bridge
-правил и чувствительных политик, которые не публикуются как open source.
+Приватное ядро (`DotSoundPrivateCore`) используется для стабильных
+internal contracts и закрытых decision-функций. Публичный Bot показывает
+тонкий Telegram/UI слой и клиент к Backend, но не раскрывает реализацию
+закрытых политик.
 
 ### Компоненты
 
@@ -181,6 +190,13 @@ Handlers не содержат бизнес-логики — только выз
 ---
 
 ## Команды разработчика
+
+Команды ниже отражают полный internal workspace. В публичном showcase
+они полезны как ориентир, но могут требовать закрытый пакет
+`DotSoundPrivateCore`. На момент публикационной подготовки полный
+Ruff/Mypy backlog не заявляется как зелёный quality gate; активные
+обязательные guardrails находятся в
+`.github/workflows/policy-guardrails.yml`.
 
 ```bash
 # Docker Compose (bot + redis + json-file log rotation)
@@ -203,7 +219,9 @@ poetry run black bot/
 
 ## License / Usage Restrictions
 
-Репозиторий **не является open source**.
+Репозиторий **не является open source**. Это source-available showcase:
+код можно читать и оценивать, но права на production-использование,
+hosting, redistribution и производные продукты ограничены лицензией.
 
 - Лицензия: `[LICENSE](./LICENSE)`
 - Ограничения использования: `[NOTICE](./NOTICE)`
