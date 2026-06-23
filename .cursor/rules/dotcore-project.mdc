@@ -1,0 +1,34 @@
+---
+description: DotCore контекст проекта - сборка, тесты, соглашения. Читай AGENTS.md для деталей.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# DotCore Project Context
+
+Канонические инструкции: [AGENTS.md](../../AGENTS.md) в корне репозитория.
+
+## Кратко
+
+- **Тип:** bot (Telegram, aiogram 3.x, async)
+- **Установка:** `poetry install` (требует соседний `../DotSoundPrivateCore`)
+- **Запуск:** `poetry run python main.py`
+- **Тесты:** `poetry run pytest` (branch-coverage, порог 80%)
+
+## Правила
+
+- Источник правды - код, не устаревший README.
+- README в стандарте DotCore: без marketing, без `<details>`, без centered hero.
+- Обложка: `docs/cover.svg` + `<img>` (GitHub-first).
+- LoC-бейдж - 4-й в строке header, между `<!-- loc:start -->` и `<!-- loc:end -->`.
+- Public/private граница ([docs/ai-boundary-policy.md](../../docs/ai-boundary-policy.md)): bridge-логику не инлайнить в публичный код, реализовывать через `dotsound_private_core`; зона неясна - остановись и спроси.
+- Секреты и `.env` - off-limits без явного per-file разрешения (см. `secrets-and-env.mdc`).
+- При глобальных изменениях (команды, модули, зависимости, архитектура) обнови README через скилл `generate-readme`.
+- Минимальный scope изменений.
+
+## README
+
+Человеческая документация: [README.md](../../README.md). Не дублируй её целиком в чат - ссылайся на секции.
+
+Перегенерация: скилл `generate-readme` (обновляет README + AGENTS.md + этот rule).

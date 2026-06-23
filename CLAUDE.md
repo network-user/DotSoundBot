@@ -1,33 +1,26 @@
-# Claude Policy Adapter
+# Claude Code
 
-Follow `docs/ai-boundary-policy.md` as mandatory rules.
+Прочитай [AGENTS.md](AGENTS.md) перед любой задачей в этом репозитории - это канонический источник правды для агентов.
 
-If a request may mix public bot logic with private bridge logic,
-stop and ask for explicit confirmation first.
+## Приоритет контекста
 
-## Secrets & .env (HARD RULE)
+1. Явный запрос пользователя
+2. [AGENTS.md](AGENTS.md)
+3. [README.md](README.md)
+4. Код в затронутых файлах
 
-`.env` and other secret files (see
-`.cursor/rules/secrets-and-env.mdc` for the full list) are
-**off-limits** to the agent unless the user explicitly grants
-per-session, per-file permission.
+## Границы public/private (HARD RULE)
 
-The agent MUST NOT:
-- read, search, write, patch, restore, copy, delete, or otherwise
-  touch any secret file;
-- print or quote contents of secret files anywhere
-  (chat replies, commit messages, logs, PR descriptions,
-  subagent prompts, terminal output);
-- pipe secret files into external tools that would surface them.
+Следуй [docs/ai-boundary-policy.md](docs/ai-boundary-policy.md) как обязательным правилам. Этот репозиторий - публичный тонкий клиент; приватная bridge-логика живёт в `dotsound_private_core`. Не переноси private-код в public-ветку и не инлайнь приватные константы в публичные хендлеры. Если запрос может смешать публичную bot-логику с приватной bridge-логикой или зона неясна - **остановись и запроси явное подтверждение**.
 
-Allowed without asking:
-- `*.example`, `*.sample`, `*.template` env templates;
-- talking about variable **names** in the abstract;
-- referencing secret files by **path** in config (e.g. listing
-  `env_file: - .env` in `docker-compose.yml`).
+## Секреты и `.env` (HARD RULE)
 
-If a value is needed, the agent MUST stop and ask the user to
-either paste the value into chat or grant explicit permission to
-read a specific file. Permission does not carry over between
-sessions or files.
+`.env` и другие секретные файлы (полный список - `.cursor/rules/secrets-and-env.mdc`) **off-limits**, пока пользователь не выдал явное per-session, per-file разрешение. Запрещено читать, искать внутри, редактировать, переименовывать, откатывать через git, копировать, удалять и цитировать их содержимое где-либо (чат, коммиты, логи, PR, промпты подагентов). Разрешены без спроса `*.example`/`*.sample`/`*.template`, имена переменных абстрактно и ссылка на путь секрета в конфиге. Нужно значение - остановись и попроси вставить его в чат или дать разрешение на конкретный файл.
 
+## Триггеры
+
+- «Обнови README» / «сгенерируй README» → скилл `generate-readme`
+- Глобальные изменения функционала (новые/удалённые команды, хендлеры, модули, зависимости, смена архитектуры или runtime) → обнови `README.md` + `AGENTS.md` тем же скиллом (включая пересчёт LoC)
+- Правки документации → стандарт DotCore (см. AGENTS.md)
+
+Не дублируй содержимое AGENTS.md здесь - обновляй AGENTS.md через скилл.

@@ -1,252 +1,122 @@
-# DotSound Bot
+# .sound
 
-Telegram-бот музыкальной платформы DotSound — загрузка треков, поиск через inline-режим, лайки, открытие Mini App.
+<p>
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat" alt="Python 3.12" />
+  <img src="https://img.shields.io/badge/Platform-Telegram%20%7C%20Docker-555?style=flat" alt="Platform" />
+  <img src="https://img.shields.io/badge/Category-Bot-orange?style=flat" alt="Category" />
+  <!-- loc:start --><img src="https://img.shields.io/badge/lines_of_code-12k%2B-lightgrey?style=flat" alt="12k+ lines of code" /><!-- loc:end -->
+</p>
 
-> Source-available engineering showcase.
-> Репозиторий открыт для чтения кода и оценки инженерных решений.
-> Закрытое ядро `DotSoundPrivateCore` намеренно не публикуется и
-> требуется только для полного локального запуска/сборки.
+<img src="docs/cover.svg" width="720" alt="DotSoundBot" />
 
----
+Тонкий Telegram-клиент музыкальной платформы DotSound на aiogram 3. Хендлеры не содержат бизнес-логики - только вызовы бэкенда через единственный HTTP-клиент, а чувствительная bridge-логика и internal-контракты вынесены в закрытый пакет `dotsound_private_core`. Source-available showcase: код открыт для чтения и оценки, для полного локального запуска нужен соседний приватный пакет.
+
+## Что внутри
+
+- **Inline-плеер.** Листание треков пачками с предзагрузкой (prefetch), 6 источников (мои, лайки, лента, плейлисты, подписки, рекомендации), shuffle и кнопка «назад»; `file_id` кэшируется в Redis.
+- **Загрузка треков.** Аудиофайлы (`.mp3`, `.flac`, `.ogg`, `.wav`, `.m4a`), отправленные в чат, автоматически уходят на платформу.
+- **Inline-поиск.** Поиск треков из любого чата через `@bot запрос`, без открытия бота.
+- **Mini App.** Кнопка меню `.sound` открывает веб-плеер внутри Telegram.
+- **Веб-вход.** Коды авторизации и уведомления о входе доставляются через бота.
+- **Команды и UX.** `/start`, `/help`, `/mystats`, лайки, рекомендации, артисты, плейлисты.
+- **Два языка.** Русский и английский, выбор по `language_code` пользователя.
+- **Internal API.** Закрытый aiohttp-эндпоинт на loopback (`:8081`) для обратных вызовов бэкенд → бот, защищён заголовком `X-Internal-Secret`.
+
+## Запуск
+
+Полный запуск рассчитан на владельцев DotSound-workspace - рядом должен лежать приватный `../DotSoundPrivateCore`, а бот - тонкий клиент и не работает без запущенного DotSoundBackend.
+
+```bash
+poetry install            # требует соседний ../DotSoundPrivateCore
+cp .env.example .env       # заполнить BOT_TOKEN, BACKEND_BASE_URL, MINI_APP_URL
+poetry run python main.py  # long polling + internal API на :8081
+```
+
+Токен бота - у [@BotFather](https://t.me/BotFather) (`/newbot`), inline-режим включается там же (`Bot Settings → Inline Mode`). Публичный showcase-клон без приватного пакета предназначен для code review, а не для production-запуска.
+
+### Docker
+
+```bash
+docker compose up -d --build   # bot + redis, json-file log rotation
+```
+
+Образ собирается из родительского контекста, включающего оба репозитория (`DotSoundBot` и `DotSoundPrivateCore`) - см. комментарий в `Dockerfile`.
+
+## Команды
+
+| Команда | Назначение |
+|---------|------------|
+| `poetry run python main.py` | Запуск бота (long polling + internal API) |
+| `poetry run pytest` | Тесты (pytest + anyio) |
+| `poetry run pytest --cov=bot` | Покрытие (branch, порог 80%) |
+| `poetry run ruff check .` | Линтер |
+| `poetry run black .` | Форматирование (79 символов) |
+| `poetry run mypy bot/` | Проверка типов (strict) |
+| `python scripts/check_boundary_policy.py` | Guardrail public/private границы |
+| `docker compose up -d --build` | bot + redis |
 
 ## Стек
 
+<p>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/aiogram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="aiogram" />
+  <img src="https://img.shields.io/badge/httpx-555555?style=for-the-badge" alt="httpx" />
+  <img src="https://img.shields.io/badge/aiohttp-2C5BB4?style=for-the-badge&logo=aiohttp&logoColor=white" alt="aiohttp" />
+  <img src="https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white" alt="Pydantic" />
+  <img src="https://img.shields.io/badge/structlog-2d3748?style=for-the-badge" alt="structlog" />
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Poetry-60A5FA?style=for-the-badge&logo=poetry&logoColor=white" alt="Poetry" />
+  <img src="https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white" alt="pytest" />
+  <img src="https://img.shields.io/badge/ruff-D7FF64?style=for-the-badge&logo=ruff&logoColor=black" alt="ruff" />
+  <img src="https://img.shields.io/badge/mypy-2C5282?style=for-the-badge" alt="mypy" />
+</p>
 
-| Компонент   | Технология                    |
-| ----------- | ----------------------------- |
-| Бот         | aiogram 3.x (полностью async) |
-| HTTP-клиент | httpx (async)                 |
-| Конфиг      | pydantic-settings             |
-| Логирование | structlog                     |
-| Зависимости | Poetry                        |
-
-
----
-
-## Требования
-
-
-| Инструмент                           | Версия  | Зачем                                           |
-| ------------------------------------ | ------- | ----------------------------------------------- |
-| Python                               | 3.12    | Запуск бота                                     |
-| [Poetry](https://python-poetry.org/) | любая   | Управление зависимостями                        |
-| Telegram Bot Token                   | —       | Получить у [@BotFather](https://t.me/BotFather) |
-| DotSoundBackend                      | запущен | Бот — тонкий клиент, вся логика на бэкенде      |
-
-
-> Бот не работает без запущенного DotSoundBackend. Сначала поднимите бэкенд — инструкция: [DotSoundBackend/README.md](../DotSoundBackend/README.md)
-
----
-
-## Быстрый старт
-
-Этот раздел описывает запуск для владельцев полного DotSound-workspace.
-Публичный showcase-клон без соседнего приватного
-`DotSoundPrivateCore` предназначен для code review, а не для
-самостоятельного production/development запуска.
-
-### Шаг 1 — Клонируйте и установите зависимости
+## Тесты
 
 ```bash
-git clone <repo-url>
-cd DotSoundBot
-
-# Требуется соседний приватный пакет ../DotSoundPrivateCore.
-poetry install
+poetry run pytest
+poetry run pytest --cov=bot --cov-report=term-missing
 ```
 
-### Шаг 2 — Получите токен бота
-
-1. Откройте Telegram и найдите [@BotFather](https://t.me/BotFather)
-2. Отправьте команду `/newbot`
-3. Следуйте инструкциям, придумайте имя и username бота
-4. Скопируйте выданный токен в локальный `.env`.
-
-### Шаг 3 — Настройте переменные окружения
-
-```bash
-cp .env.example .env
-```
-
-Откройте `.env` и вставьте токен:
-
-```env
-BOT_TOKEN=<telegram-bot-token>
-BACKEND_BASE_URL=http://localhost:8000
-LOG_LEVEL=INFO
-```
-
-Если бэкенд запущен не локально — укажите его публичный адрес в `BACKEND_BASE_URL`.
-
-### Шаг 4 — Убедитесь, что DotSoundBackend запущен
-
-```bash
-curl http://localhost:8000/api/v1/health
-# Ожидаемый ответ: {"status": "ok"} или аналогичный
-```
-
-Если бэкенд не отвечает — [запустите его сначала](../DotSoundBackend/README.md).
-
-### Шаг 5 — Запустите бота
-
-```bash
-poetry run python main.py
-```
-
-Бот запустится в режиме long polling. Вы увидите лог:
-
-```
-INFO  dotsound_bot_starting ...
-INFO  bot started polling
-```
-
-Найдите своего бота в Telegram и отправьте `/start`.
-
----
-
-## Переменные окружения
-
-Файл: `.env` (создаётся из `.env.example`)
-
-
-| Переменная         | Описание                                 | Обязательная | Значение по умолчанию   |
-| ------------------ | ---------------------------------------- | ------------ | ----------------------- |
-| `BOT_TOKEN`        | Токен бота из @BotFather                 | ✅            | —                       |
-| `TELEGRAM_API_PROXY_URL` | Proxy для Telegram Bot API и скачивания файлов | — | — |
-| `BACKEND_BASE_URL` | URL DotSoundBackend                      | —            | `http://localhost:8000` |
-| `LOG_LEVEL`        | Уровень логов (`DEBUG`/`INFO`/`WARNING`) | —            | `INFO`                  |
-| `BACKUP_NOTIFY_TELEGRAM_ID` | Chat ID для backup-уведомлений internal API | — | `0` |
-
-
----
-
-## Возможности бота
-
-### Команды
-
-
-| Команда    | Описание                                            |
-| ---------- | --------------------------------------------------- |
-| `/start`   | Регистрация пользователя и приветственное сообщение |
-| `/help`    | Список возможностей бота                            |
-| `/mystats` | Статистика: количество загруженных треков, лайков   |
-
-
-### Inline-поиск
-
-Поиск треков прямо из любого чата без открытия бота:
-
-```
-@your_bot_name название трека
-```
-
-Результаты появятся списком — нажмите на трек, чтобы отправить его в чат.
-
-### Загрузка треков
-
-Отправьте аудиофайл (`.mp3`, `.flac`, `.ogg`, `.wav`, `.m4a`) прямо в чат с ботом — трек автоматически загрузится на платформу.
-
-### Mini App
-
-Кнопка **«Открыть плеер»** открывает полноценный веб-плеер внутри Telegram.
-
----
+Async-тесты на `pytest` + `anyio`, branch-coverage с порогом 80% (`fail_under`). Маркеры `s3`, `redis`, `slow` помечают интеграционные тесты.
 
 ## Архитектура
 
+Тонкий слой над DotSoundBackend. Хендлеры aiogram вызывают единственный `BackendClient` (httpx) и формируют ответ; бизнес-логики в них нет. Чувствительная bridge-логика и internal-контракты живут в закрытом `dotsound_private_core` и не инлайнятся в публичный код. Внутренний aiohttp-API слушает только loopback и принимает обратные вызовы бэкенда (скачивание аудио, коды входа, админ-алерты). Redis хранит `file_id`-кэш и сессии плеера.
+
 ```
-Telegram
-   ↓
-handlers/          ← обработчики команд и событий (тонкий слой)
-   ↓
-bot/api/client.py  ← HTTP-клиент (httpx)
-   ↓
-DotSoundBackend REST API
-```
-
-Handlers не содержат бизнес-логики — только вызов `BackendClient` и формирование ответа пользователю.
-
-Приватное ядро (`DotSoundPrivateCore`) используется для стабильных
-internal contracts и закрытых decision-функций. Публичный Bot показывает
-тонкий Telegram/UI слой и клиент к Backend, но не раскрывает реализацию
-закрытых политик.
-
-### Компоненты
-
-
-| Файл / Директория               | Описание                                            |
-| ------------------------------- | --------------------------------------------------- |
-| `bot/handlers/base.py`          | `/start`, `/help`, кнопка открытия Mini App         |
-| `bot/handlers/audio.py`         | Загрузка аудиофайлов                                |
-| `bot/handlers/inline_mode.py`   | Inline-поиск треков                                 |
-| `bot/handlers/likes.py`         | Callback-обработчик лайков                          |
-| `bot/handlers/stats.py`         | `/mystats`, callback статистики                     |
-| `bot/api/client.py`             | Все запросы к DotSoundBackend                       |
-| `bot/keyboards/inline.py`       | Фабрики инлайн-клавиатур                            |
-| `bot/middlewares/throttling.py` | Ограничение частоты запросов (0.7 с / пользователь) |
-| `bot/middlewares/logging.py`    | Логирование входящих событий                        |
-
-
----
-
-## Команды разработчика
-
-Команды ниже отражают полный internal workspace. В публичном showcase
-они полезны как ориентир, но могут требовать закрытый пакет
-`DotSoundPrivateCore`. На момент публикационной подготовки полный
-Ruff/Mypy backlog не заявляется как зелёный quality gate; активные
-обязательные guardrails находятся в
-`.github/workflows/policy-guardrails.yml`.
-
-```bash
-# Docker Compose (bot + redis + json-file log rotation)
-docker compose up -d --build
-
-# Тесты
-poetry run pytest
-
-# Линтер
-poetry run ruff check .
-
-# Проверка типов
-poetry run mypy bot/
-
-# Форматирование
-poetry run black bot/
+DotSoundBot/
+├── bot/
+│   ├── main.py              # Bot + Dispatcher, polling, internal API, меню Mini App
+│   ├── config.py            # BotSettings (pydantic-settings), валидатор loopback-bind
+│   ├── api/
+│   │   ├── client.py        # BackendClient - единственный канал к бэкенду
+│   │   └── internal.py      # aiohttp internal API (loopback, X-Internal-Secret)
+│   ├── handlers/            # base, audio, inline_mode, likes, player, playlists,
+│   │   │                    #   recommendations, artists, stats, web_auth (тонкие)
+│   ├── keyboards/           # фабрики InlineKeyboardMarkup
+│   ├── middlewares/         # logging, throttling (rate limit)
+│   ├── services/            # file_id_cache (Redis), player_session
+│   ├── core/                # structlog logging
+│   ├── i18n/                # каталог строк ru/en
+│   └── utils/               # formatting
+├── scripts/                 # check_boundary_policy, check_branch_coverage
+├── tests/                   # pytest + anyio, зеркало структуры bot/
+├── docs/                    # boundary policy, private-core dependency policy
+├── docker-compose.yml       # bot + redis
+└── Dockerfile               # multi-stage, parent-context build
 ```
 
----
+- **Тонкие хендлеры**: только `BackendClient` и ответ пользователю, без прямого `httpx`
+- **Единый канал**: все запросы к бэкенду - через `bot/api/client.py`
+- **Public/private граница**: bridge-логика и контракты - в `dotsound_private_core`, не в public-коде (CI `check_boundary_policy.py`)
+- **Internal API только loopback**: `config.py` валидирует bind-адрес, наружу не публикуется
+- **Конфиг через `bot/config.py`**: `os.environ` напрямую запрещён
+- **Тесты на каждую фичу**: branch-coverage не ниже 80%
 
-## License / Usage Restrictions
+## Лицензия
 
-Репозиторий **не является open source**. Это source-available showcase:
-код можно читать и оценивать, но права на production-использование,
-hosting, redistribution и производные продукты ограничены лицензией.
+© 2026 DotSound. Source-available, не open source.
 
-- Лицензия: `[LICENSE](./LICENSE)`
-- Ограничения использования: `[NOTICE](./NOTICE)`
-
-Разрешён просмотр и не-production оценка кода. Продакшн-использование,
-коммерческая эксплуатация, SaaS-хостинг, встраивание в другие продукты
-и перераспространение запрещены без письменного разрешения.
-
----
-
-## Частые проблемы
-
-**Бот не отвечает после `/start`**
-
-- Проверьте, что `BOT_TOKEN` корректный
-- Убедитесь, что DotSoundBackend запущен и доступен по `BACKEND_BASE_URL`
-
-**Ошибка `ConnectionRefusedError` при старте**
-
-- DotSoundBackend не запущен. Выполните `curl $BACKEND_BASE_URL/api/v1/health`
-
-**Inline-поиск не работает**
-
-- В @BotFather включите inline-режим: `/mybots` → ваш бот → `Bot Settings` → `Inline Mode` → `Turn on`
-
----
-
-> Связанный репозиторий: [DotSoundBackend](../DotSoundBackend)
+Код открыт для чтения, архитектурного и security-review и локальной не-production оценки. Production-использование, коммерция, SaaS-хостинг, redistribution и производные продукты запрещены без письменного разрешения. Приватный пакет `DotSoundPrivateCore` намеренно не публикуется. См. [LICENSE](LICENSE) и [NOTICE](NOTICE).
