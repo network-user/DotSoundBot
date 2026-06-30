@@ -95,7 +95,10 @@ async def _send_stats(
                 track.get("artist") or uartist,
                 40,
             )
-            play_count = track.get("play_count", 0)
+            try:
+                play_count = int(track.get("play_count", 0))
+            except (TypeError, ValueError):
+                play_count = 0
             title = safe_html(
                 track.get("title", "—"), 60
             )
