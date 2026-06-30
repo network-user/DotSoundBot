@@ -1,0 +1,57 @@
+# Keep secrets, VCS metadata and local caches out of the build context/image.
+# NOTE: the production image is built with the PARENT directory as the build
+# context (see Dockerfile header: `docker build -f DotSoundBot/Dockerfile .`).
+# A .dockerignore is read from the CONTEXT ROOT, so for that build an
+# equivalent ignore file must also live in the parent directory. This file
+# covers the docker-compose case where `context: .` is this directory.
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+secrets.json
+credentials.json
+service-account*.json
+
+# VCS
+.git
+.gitignore
+
+# Python caches / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.json
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local data / logs / editor / agent files
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.bak
+*.tmp
+.idea/
+.vscode/
+.claude/
