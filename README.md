@@ -11,7 +11,7 @@
 
 <!-- audit:start -->
 <p>
-  <img src="https://img.shields.io/badge/security_audit-passed_with_warnings-dbab09?style=flat" alt="security audit passed with warnings" />
+  <img src="https://img.shields.io/badge/security_audit-passed-3fb950?style=flat" alt="security audit passed" />
   <img src="https://img.shields.io/badge/level-full-8957e5?style=flat" alt="level full" />
   <img src="https://img.shields.io/badge/scope-leaks_%2B_code-bf3989?style=flat" alt="scope leaks and code" />
   <img src="https://img.shields.io/badge/model-Claude_Opus_4.8-555?style=flat" alt="model" />
