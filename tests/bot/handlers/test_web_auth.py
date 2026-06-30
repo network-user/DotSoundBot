@@ -5,6 +5,7 @@ from unittest.mock import (
 )
 
 import pytest
+from dotsound_private_core.contracts import INTERNAL_SECRET_HEADER
 
 
 def _make_message(
@@ -29,7 +30,7 @@ def _make_message(
 )
 @patch(
     "bot.handlers.web_auth.build_internal_headers",
-    return_value={"X-Internal-Secret": "s"},
+    return_value={INTERNAL_SECRET_HEADER: "s"},
 )
 async def test_web_login_success(
     _mock_headers: MagicMock,
@@ -75,7 +76,7 @@ async def test_web_login_success(
 )
 @patch(
     "bot.handlers.web_auth.build_internal_headers",
-    return_value={"X-Internal-Secret": "s"},
+    return_value={INTERNAL_SECRET_HEADER: "s"},
 )
 async def test_web_login_backend_error(
     _mock_headers: MagicMock,

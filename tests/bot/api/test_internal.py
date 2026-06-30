@@ -9,6 +9,7 @@ from unittest.mock import (
 import pytest
 from aiohttp.test_utils import make_mocked_request
 from dirty_equals import HasLen, IsPartialDict
+from dotsound_private_core.contracts import INTERNAL_SECRET_HEADER
 
 from bot.api.internal import (
     _check_secret,
@@ -92,7 +93,7 @@ def test_check_secret_mismatch(
     req = _make_request(
         "GET",
         "/test",
-        headers={"X-Internal-Secret": "wrong"},
+        headers={INTERNAL_SECRET_HEADER: "wrong"},
     )
 
     assert _check_secret(req) is False
@@ -106,7 +107,7 @@ def test_check_secret_match(
     req = _make_request(
         "GET",
         "/test",
-        headers={"X-Internal-Secret": "correct"},
+        headers={INTERNAL_SECRET_HEADER: "correct"},
     )
 
     assert _check_secret(req) is True
@@ -125,7 +126,7 @@ async def test_profile_audios_forbidden(
     req = _make_request(
         "GET",
         "/internal/profile/1/audios",
-        headers={"X-Internal-Secret": "bad"},
+        headers={INTERNAL_SECRET_HEADER: "bad"},
         match_info={"user_id": "1"},
     )
 
@@ -159,7 +160,7 @@ async def test_profile_audios_success(
     req = _make_request(
         "GET",
         "/internal/profile/1/audios",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         match_info={"user_id": "1"},
         bot=bot,
     )
@@ -183,7 +184,7 @@ async def test_profile_audios_exception(
     req = _make_request(
         "GET",
         "/internal/profile/1/audios",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         match_info={"user_id": "1"},
         bot=bot,
     )
@@ -206,7 +207,7 @@ async def test_download_audio_forbidden(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "bad"},
+        headers={INTERNAL_SECRET_HEADER: "bad"},
         body=b'{"file_id": "abc"}',
     )
 
@@ -224,7 +225,7 @@ async def test_download_audio_invalid_json(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         bot=bot,
         json_error=True,
     )
@@ -243,7 +244,7 @@ async def test_download_audio_missing_file_id(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"file_id": ""}',
         bot=bot,
     )
@@ -273,7 +274,7 @@ async def test_download_audio_success(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"file_id": "abc123"}',
         bot=bot,
     )
@@ -298,7 +299,7 @@ async def test_download_audio_no_file_path(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"file_id": "abc123"}',
         bot=bot,
     )
@@ -322,7 +323,7 @@ async def test_download_audio_too_large(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"file_id": "abc123"}',
         bot=bot,
     )
@@ -343,7 +344,7 @@ async def test_download_audio_exception(
     req = _make_request(
         "POST",
         "/internal/download",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"file_id": "abc123"}',
         bot=bot,
     )
@@ -366,7 +367,7 @@ async def test_send_auth_code_forbidden(
     req = _make_request(
         "POST",
         "/internal/auth-code",
-        headers={"X-Internal-Secret": "bad"},
+        headers={INTERNAL_SECRET_HEADER: "bad"},
         body=b'{"telegram_id": 123, "code": "1234"}',
     )
 
@@ -384,7 +385,7 @@ async def test_send_auth_code_invalid_json(
     req = _make_request(
         "POST",
         "/internal/auth-code",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         bot=bot,
         json_error=True,
     )
@@ -403,7 +404,7 @@ async def test_send_auth_code_missing_params(
     req = _make_request(
         "POST",
         "/internal/auth-code",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"telegram_id": 0, "code": ""}',
         bot=bot,
     )
@@ -423,7 +424,7 @@ async def test_send_auth_code_success(
     req = _make_request(
         "POST",
         "/internal/auth-code",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"telegram_id": 123, "code": "9999"}',
         bot=bot,
     )
@@ -446,7 +447,7 @@ async def test_send_auth_code_send_fails(
     req = _make_request(
         "POST",
         "/internal/auth-code",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"telegram_id": 123, "code": "9999"}',
         bot=bot,
     )
@@ -469,7 +470,7 @@ async def test_login_notification_forbidden(
     req = _make_request(
         "POST",
         "/internal/login-notification",
-        headers={"X-Internal-Secret": "bad"},
+        headers={INTERNAL_SECRET_HEADER: "bad"},
         body=b'{"telegram_id": 1}',
     )
 
@@ -487,7 +488,7 @@ async def test_login_notification_invalid_json(
     req = _make_request(
         "POST",
         "/internal/login-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         bot=bot,
         json_error=True,
     )
@@ -506,7 +507,7 @@ async def test_login_notification_missing_tg_id(
     req = _make_request(
         "POST",
         "/internal/login-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=b'{"telegram_id": 0}',
         bot=bot,
     )
@@ -534,7 +535,7 @@ async def test_login_notification_success(
     req = _make_request(
         "POST",
         "/internal/login-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=body,
         bot=bot,
     )
@@ -565,7 +566,7 @@ async def test_login_notification_send_fails(
     req = _make_request(
         "POST",
         "/internal/login-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=body,
         bot=bot,
     )
@@ -605,7 +606,7 @@ async def test_admin_alert_forbidden(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "bad"},
+        headers={INTERNAL_SECRET_HEADER: "bad"},
         body=_alert_body(),
     )
 
@@ -624,7 +625,7 @@ async def test_admin_alert_invalid_json(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         bot=bot,
         json_error=True,
     )
@@ -650,7 +651,7 @@ async def test_admin_alert_missing_required(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=body,
         bot=bot,
     )
@@ -670,7 +671,7 @@ async def test_admin_alert_unknown_severity(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_alert_body(severity="verbose"),
         bot=bot,
     )
@@ -690,7 +691,7 @@ async def test_admin_alert_chat_not_allowed(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_alert_body(chat_id="1001"),
         bot=bot,
     )
@@ -711,7 +712,7 @@ async def test_admin_alert_success_with_allowlist(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_alert_body(chat_id="1001"),
         bot=bot,
     )
@@ -724,7 +725,7 @@ async def test_admin_alert_success_with_allowlist(
     bot.send_message.assert_awaited_once()
     call_kwargs = bot.send_message.await_args.kwargs
     assert call_kwargs["chat_id"] == 1001
-    assert call_kwargs["parse_mode"] == "HTML"
+    assert call_kwargs["parse_mode"] is None
     body_text = str(call_kwargs["text"])
     assert "User locked out" in body_text
     assert "lockout" in body_text
@@ -742,7 +743,7 @@ async def test_admin_alert_success_no_allowlist(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_alert_body(chat_id="anything"),
         bot=bot,
     )
@@ -754,7 +755,7 @@ async def test_admin_alert_success_no_allowlist(
 
 
 @patch("bot.api.internal.settings")
-async def test_admin_alert_html_escaping(
+async def test_admin_alert_sent_as_plain_text(
     mock_settings: MagicMock,
 ) -> None:
     mock_settings.internal_api_secret = "s"
@@ -764,7 +765,7 @@ async def test_admin_alert_html_escaping(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_alert_body(
             title="<script>x</script>",
             details="<b>bad</b> & <code>",
@@ -775,9 +776,14 @@ async def test_admin_alert_html_escaping(
     resp = await handle_admin_alert(req)
 
     assert resp.status == 200
-    text = str(bot.send_message.await_args.kwargs["text"])
-    assert "<script>" not in text
-    assert "&lt;script&gt;" in text
+    call_kwargs = bot.send_message.await_args.kwargs
+    # Alerts go out as plain text (parse_mode=None): backend-supplied
+    # markup is delivered literally and never parsed as HTML, so no
+    # escaping is applied and no HTML injection is possible.
+    assert call_kwargs["parse_mode"] is None
+    text = str(call_kwargs["text"])
+    assert "<script>x</script>" in text
+    assert "<b>bad</b> & <code>" in text
 
 
 @patch("bot.api.internal.settings")
@@ -791,7 +797,7 @@ async def test_admin_alert_send_fails(
     req = _make_request(
         "POST",
         "/internal/admin-alert",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_alert_body(),
         bot=bot,
     )
@@ -827,7 +833,7 @@ async def test_backup_notify_forbidden(
     req = _make_request(
         "POST",
         "/internal/send-remote-backup-notification",
-        headers={"X-Internal-Secret": "bad"},
+        headers={INTERNAL_SECRET_HEADER: "bad"},
         body=_backup_body(),
     )
 
@@ -846,7 +852,7 @@ async def test_backup_notify_missing_config(
     req = _make_request(
         "POST",
         "/internal/send-remote-backup-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_backup_body(),
         bot=bot,
     )
@@ -866,7 +872,7 @@ async def test_backup_notify_unknown_status(
     req = _make_request(
         "POST",
         "/internal/send-remote-backup-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_backup_body(status="queued"),
         bot=bot,
     )
@@ -887,7 +893,7 @@ async def test_backup_notify_success(
     req = _make_request(
         "POST",
         "/internal/send-remote-backup-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_backup_body(status="failed", reason="network down"),
         bot=bot,
     )
@@ -913,7 +919,7 @@ async def test_backup_notify_send_fails(
     req = _make_request(
         "POST",
         "/internal/send-remote-backup-notification",
-        headers={"X-Internal-Secret": "s"},
+        headers={INTERNAL_SECRET_HEADER: "s"},
         body=_backup_body(),
         bot=bot,
     )

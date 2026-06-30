@@ -311,23 +311,22 @@ async def handle_admin_alert(
 ) -> web.Response:
     """Forward an admin-panel alert from backend to Telegram.
 
-    The contract is documented in
-    ``DotSoundBackend/docs/admin/security.md``::
+    The route and the internal secret header are defined by
+    ``dotsound_private_core.contracts`` (``ADMIN_ALERT_ENDPOINT`` /
+    ``INTERNAL_SECRET_HEADER``); the full contract is documented in
+    ``DotSoundBackend/docs/admin/security.md``. Request body::
 
-        POST /internal/admin-alert
-        Headers: X-Internal-Secret: {bot_internal_secret}
-        Body:
-          {
-            "chat_id":   str,
+        {
+            "chat_id":    str,
             "event_type": str,
-            "severity":  "info" | "warning" | "critical",
-            "title":     str,
-            "details":   str,
-            "user_id":   int | null,
-            "ip":        str | null,
-            "ua":        str | null,
-            "ts":        ISO8601
-          }
+            "severity":   "info" | "warning" | "critical",
+            "title":      str,
+            "details":    str,
+            "user_id":    int | null,
+            "ip":         str | null,
+            "ua":         str | null,
+            "ts":         ISO8601
+        }
     """
     if not _check_secret(request):
         return web.json_response({"error": "forbidden"}, status=403)
