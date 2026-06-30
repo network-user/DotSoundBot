@@ -219,7 +219,7 @@ async def test_on_playlist_selected_success(
     )
 
     client = AsyncMock()
-    client.get = AsyncMock(
+    client.get_playlist_detail = AsyncMock(
         return_value={
             "name": "Chill",
             "tracks": [
@@ -258,7 +258,7 @@ async def test_on_playlist_selected_empty_tracks(
     )
 
     client = AsyncMock()
-    client.get = AsyncMock(
+    client.get_playlist_detail = AsyncMock(
         return_value={
             "name": "Empty",
             "tracks": [],
@@ -291,7 +291,7 @@ async def test_on_playlist_selected_backend_error(
     )
 
     client = AsyncMock()
-    client.get = AsyncMock(
+    client.get_playlist_detail = AsyncMock(
         side_effect=BackendError(404, "nope")
     )
     mock_client_cls.return_value.__aenter__ = (

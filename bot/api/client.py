@@ -239,6 +239,33 @@ class BackendClient:
         )
         return result
 
+    async def get_playlist_detail(
+        self, playlist_id: int, telegram_id: int
+    ) -> dict[str, Any]:
+        logger.info(
+            "backend_get_playlist_detail",
+            playlist_id=playlist_id,
+        )
+        headers: dict[str, str] = {}
+        try:
+            token = await self._get_token_for_user(
+                telegram_id
+            )
+            headers["Authorization"] = (
+                f"Bearer {token}"
+            )
+        except Exception:
+            logger.warning(
+                "playlist_detail_token_failed"
+            )
+        response = await self._request(
+            "GET",
+            f"/api/v1/playlists/{playlist_id}",
+            headers=headers,
+        )
+        result: dict[str, Any] = response.json()
+        return result
+
     async def get_internal_token(
         self,
         telegram_id: int,

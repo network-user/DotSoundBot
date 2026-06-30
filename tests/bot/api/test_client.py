@@ -376,6 +376,55 @@ async def test_create_playlist_token_failure(
 
 
 # ------------------------------------------------------------------
+# get_playlist_detail
+# ------------------------------------------------------------------
+
+
+async def test_get_playlist_detail_success(
+    client: BackendClient,
+) -> None:
+    resp = _resp(
+        200,
+        {"id": 7, "name": "Chill", "tracks": []},
+    )
+    client._client = AsyncMock()
+    client._client.request = AsyncMock(
+        return_value=resp
+    )
+    client._get_token_for_user = AsyncMock(
+        return_value="tok"
+    )
+
+    result = await client.get_playlist_detail(7, 1)
+
+    assert result == IsPartialDict(
+        id=7, name="Chill"
+    )
+    call = client._client.request.call_args
+    headers = call.kwargs.get("headers") or {}
+    assert (
+        headers.get("Authorization") == "Bearer tok"
+    )
+
+
+async def test_get_playlist_detail_token_failure(
+    client: BackendClient,
+) -> None:
+    resp = _resp(200, {"id": 8, "name": "P"})
+    client._client = AsyncMock()
+    client._client.request = AsyncMock(
+        return_value=resp
+    )
+    client._get_token_for_user = AsyncMock(
+        side_effect=Exception("fail")
+    )
+
+    result = await client.get_playlist_detail(8, 1)
+
+    assert result == IsPartialDict(id=8)
+
+
+# ------------------------------------------------------------------
 # get_internal_token
 # ------------------------------------------------------------------
 

@@ -125,8 +125,8 @@ async def on_playlist_selected(
 
     async with BackendClient() as client:
         try:
-            detail = await client.get(
-                f"/api/v1/playlists/{playlist_id}"
+            detail = await client.get_playlist_detail(
+                playlist_id, callback.from_user.id
             )
             tracks = detail.get("tracks", [])
             nempty = tr("playlists.no_tracks", lang)
