@@ -27,3 +27,25 @@ htmlcov/
 
 # Claude Code internal files
 .claude/
+
+# Secrets / keys / local data (defense-in-depth — keep the template tracked)
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+secrets.json
+credentials.json
+service-account*.json
+*.sqlite
+*.sqlite3
+*.db
+*.tmp
+
+# Virtual environments
+venv/
+.venv/
+env/
