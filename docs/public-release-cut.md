@@ -15,9 +15,9 @@
 
 ## Pre-Publish Checklist
 
-- [ ] No hardcoded internal bridge constants in public modules.
-- [ ] No secrets in source.
-- [ ] `docs/ai-boundary-policy.md` reflects current boundaries.
-- [ ] CI guardrails and CODEOWNERS are enabled.
-- [ ] License and usage restrictions are present.
+- [x] No hardcoded internal bridge constants in public modules.
+- [x] No secrets in source.
+- [x] `docs/ai-boundary-policy.md` reflects current boundaries.
+- [x] CI guardrails and CODEOWNERS are enabled.
+- [x] License and usage restrictions are present.
 

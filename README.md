@@ -9,6 +9,16 @@
 
 <img src="docs/cover.svg" width="720" alt="DotSoundBot" />
 
+<!-- audit:start -->
+<p>
+  <img src="https://img.shields.io/badge/security_audit-passed_with_warnings-dbab09?style=flat" alt="security audit passed with warnings" />
+  <img src="https://img.shields.io/badge/level-full-8957e5?style=flat" alt="level full" />
+  <img src="https://img.shields.io/badge/scope-leaks_%2B_code-bf3989?style=flat" alt="scope leaks and code" />
+  <img src="https://img.shields.io/badge/model-Claude_Opus_4.8-555?style=flat" alt="model" />
+  <img src="https://img.shields.io/badge/date-2026--06--30-555?style=flat" alt="date" />
+</p>
+<!-- audit:end -->
+
 Тонкий Telegram-клиент музыкальной платформы DotSound на aiogram 3. Хендлеры не содержат бизнес-логики - только вызовы бэкенда через единственный HTTP-клиент, а чувствительная bridge-логика и internal-контракты вынесены в закрытый пакет `dotsound_private_core`. Source-available showcase: код открыт для чтения и оценки, для полного локального запуска нужен соседний приватный пакет.
 
 ## Что внутри
