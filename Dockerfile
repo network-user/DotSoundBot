@@ -39,8 +39,11 @@ RUN poetry install --no-interaction --no-ansi --only main && \
 
 FROM python:3.12-slim AS runtime
 
+# MALLOC_ARENA_MAX=2 caps glibc per-thread malloc arenas so the
+# long-running bot process doesn't fragment RSS across threads.
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    MALLOC_ARENA_MAX=2
 
 RUN addgroup --system app && adduser --system --ingroup app app && \
     apt-get update && apt-get install -y --no-install-recommends \

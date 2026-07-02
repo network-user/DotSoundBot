@@ -1,3 +1,5 @@
+import asyncio
+
 import structlog
 from aiogram import Bot, F, Router
 from aiogram.types import Document, Message
@@ -10,6 +12,11 @@ from bot.utils.formatting import safe_html
 
 router = Router()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+# Каждая загрузка держит в RAM буфер файла (Telegram отдаёт до
+# 20 МБ), а число одновременных хендлеров aiogram не ограничивает.
+# Семафор капит пиковую память: лишние загрузки просто ждут.
+_UPLOAD_SEMAPHORE = asyncio.Semaphore(2)
 
 _AUDIO_MIMES = frozenset(
     {
@@ -55,64 +62,65 @@ async def handle_audio(message: Message, bot: Bot) -> None:
     )
     artist = audio.performer
 
-    file_info = await bot.get_file(audio.file_id)
-    file_bytes = await bot.download_file(
-        file_info.file_path or ""
-    )
-    if file_bytes is None:
-        logger.error("audio_download_failed")
-        await message.reply(
-            tr("audio.download_failed", lang)
+    async with _UPLOAD_SEMAPHORE:
+        file_info = await bot.get_file(audio.file_id)
+        file_bytes = await bot.download_file(
+            file_info.file_path or ""
         )
-        return
-
-    data = file_bytes.read()
-
-    async with BackendClient() as client:
-        try:
-            track = await client.upload_audio(
-                file_bytes=data,
-                filename=audio.file_name or "track.mp3",
-                content_type=audio.mime_type or "audio/mpeg",
-                title=title,
-                artist=artist,
-                uploader_id=user.id,
-            )
-            track_id = track["id"]
-            logger.info(
-                "audio_upload_success",
-                track_id=track_id,
-                title=title,
-            )
-            mini_app_url = (
-                f"{settings.mini_app_url}"
-                f"?track_id={track_id}"
-            )
-            safe_title = safe_html(title, 80)
-            safe_artist = safe_html(artist, 60)
-            artist_line = (
-                f"\n👤 {safe_artist}"
-                if safe_artist
-                else ""
-            )
+        if file_bytes is None:
+            logger.error("audio_download_failed")
             await message.reply(
-                tr("audio.uploaded", lang)
-                + f"🎵 <b>{safe_title}</b>"
-                + artist_line,
-                parse_mode="HTML",
-                reply_markup=track_action_keyboard(
-                    track_id, mini_app_url, lang
-                ),
+                tr("audio.download_failed", lang)
             )
-        except BackendError as exc:
-            logger.error(
-                "audio_upload_failed",
-                status=exc.status_code,
-                detail=exc.detail,
-            )
-            await message.reply(
-                tr("audio.upload_error", lang)
-            )
+            return
+
+        async with BackendClient() as client:
+            try:
+                # Передаём file-like как есть: httpx стримит его в
+                # multipart чанками, без второй полной копии в RAM.
+                track = await client.upload_audio(
+                    file_bytes=file_bytes,
+                    filename=audio.file_name or "track.mp3",
+                    content_type=audio.mime_type or "audio/mpeg",
+                    title=title,
+                    artist=artist,
+                    uploader_id=user.id,
+                )
+                track_id = track["id"]
+                logger.info(
+                    "audio_upload_success",
+                    track_id=track_id,
+                    title=title,
+                )
+                mini_app_url = (
+                    f"{settings.mini_app_url}"
+                    f"?track_id={track_id}"
+                )
+                safe_title = safe_html(title, 80)
+                safe_artist = safe_html(artist, 60)
+                artist_line = (
+                    f"\n👤 {safe_artist}"
+                    if safe_artist
+                    else ""
+                )
+                await message.reply(
+                    tr("audio.uploaded", lang)
+                    + f"🎵 <b>{safe_title}</b>"
+                    + artist_line,
+                    parse_mode="HTML",
+                    reply_markup=track_action_keyboard(
+                        track_id, mini_app_url, lang
+                    ),
+                )
+            except BackendError as exc:
+                logger.error(
+                    "audio_upload_failed",
+                    status=exc.status_code,
+                    detail=exc.detail,
+                )
+                await message.reply(
+                    tr("audio.upload_error", lang)
+                )
 
 
 @router.message(F.document.func(_is_audio_document))  # type: ignore[arg-type]
@@ -134,50 +142,49 @@ async def handle_audio_document(
     logger.info("audio_document_received")
 
     title = doc.file_name or "Unknown Track"
-    file_info = await bot.get_file(doc.file_id)
-    file_bytes = await bot.download_file(
-        file_info.file_path or ""
-    )
-    if file_bytes is None:
-        await message.reply(
-            tr("audio.reply_download", lang)
+    async with _UPLOAD_SEMAPHORE:
+        file_info = await bot.get_file(doc.file_id)
+        file_bytes = await bot.download_file(
+            file_info.file_path or ""
         )
-        return
-
-    data = file_bytes.read()
-
-    async with BackendClient() as client:
-        try:
-            track = await client.upload_audio(
-                file_bytes=data,
-                filename=doc.file_name or "track.mp3",
-                content_type=doc.mime_type or "audio/mpeg",
-                title=title,
-                uploader_id=user.id,
-            )
-            track_id = track["id"]
-            logger.info(
-                "audio_document_upload_success",
-                track_id=track_id,
-            )
-            mini_app_url = (
-                f"{settings.mini_app_url}"
-                f"?track_id={track_id}"
-            )
-            safe_title = safe_html(title, 80)
+        if file_bytes is None:
             await message.reply(
-                tr("audio.uploaded_doc", lang)
-                + f"<b>{safe_title}</b>",
-                parse_mode="HTML",
-                reply_markup=track_action_keyboard(
-                    track_id, mini_app_url, lang
-                ),
+                tr("audio.reply_download", lang)
             )
-        except BackendError as exc:
-            logger.error(
-                "audio_document_upload_failed",
-                status=exc.status_code,
-            )
-            await message.reply(
-                tr("audio.format_error", lang)
-            )
+            return
+
+        async with BackendClient() as client:
+            try:
+                track = await client.upload_audio(
+                    file_bytes=file_bytes,
+                    filename=doc.file_name or "track.mp3",
+                    content_type=doc.mime_type or "audio/mpeg",
+                    title=title,
+                    uploader_id=user.id,
+                )
+                track_id = track["id"]
+                logger.info(
+                    "audio_document_upload_success",
+                    track_id=track_id,
+                )
+                mini_app_url = (
+                    f"{settings.mini_app_url}"
+                    f"?track_id={track_id}"
+                )
+                safe_title = safe_html(title, 80)
+                await message.reply(
+                    tr("audio.uploaded_doc", lang)
+                    + f"<b>{safe_title}</b>",
+                    parse_mode="HTML",
+                    reply_markup=track_action_keyboard(
+                        track_id, mini_app_url, lang
+                    ),
+                )
+            except BackendError as exc:
+                logger.error(
+                    "audio_document_upload_failed",
+                    status=exc.status_code,
+                )
+                await message.reply(
+                    tr("audio.format_error", lang)
+                )

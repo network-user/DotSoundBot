@@ -1,3 +1,4 @@
+import asyncio
 import hmac
 import io
 from typing import Any
@@ -23,6 +24,9 @@ from bot.utils.formatting import html_escape
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 _MAX_DOWNLOAD_SIZE = 20 * 1024 * 1024
+# Каждое скачивание держит файл (до 20 МБ) в RAM целиком; без
+# ограничения параллельные запросы бэкенда множат этот буфер.
+_DOWNLOAD_SEMAPHORE = asyncio.Semaphore(2)
 _ALLOWED_ALERT_SEVERITIES = frozenset({"info", "warning", "critical"})
 _SEVERITY_PREFIX = {
     "info": "ℹ️",
@@ -155,34 +159,41 @@ async def handle_download_audio(
     bot: Bot = request.app["bot"]
 
     try:
-        file = await bot.get_file(file_id)
-        if not file.file_path:
-            return web.json_response(
-                {"error": "file_path missing"},
-                status=404,
-            )
-        if file.file_size and file.file_size > _MAX_DOWNLOAD_SIZE:
-            return web.json_response(
-                {"error": "file_too_large"},
-                status=413,
-            )
+        async with _DOWNLOAD_SEMAPHORE:
+            file = await bot.get_file(file_id)
+            if not file.file_path:
+                return web.json_response(
+                    {"error": "file_path missing"},
+                    status=404,
+                )
+            if (
+                file.file_size
+                and file.file_size > _MAX_DOWNLOAD_SIZE
+            ):
+                return web.json_response(
+                    {"error": "file_too_large"},
+                    status=413,
+                )
 
-        buf = io.BytesIO()
-        await bot.download_file(file.file_path, buf)
-        data = buf.getvalue()
+            buf = io.BytesIO()
+            await bot.download_file(file.file_path, buf)
+            # getbuffer() — zero-copy memoryview поверх BytesIO;
+            # getvalue() делал вторую полную копию файла.
+            data = buf.getbuffer()
+            size = data.nbytes
 
-        logger.info(
-            "audio_downloaded",
-            file_id=file_id[:20],
-            size=len(data),
-        )
-        return web.Response(
-            body=data,
-            content_type="audio/mpeg",
-            headers={
-                "Content-Length": str(len(data)),
-            },
-        )
+            logger.info(
+                "audio_downloaded",
+                file_id=file_id[:20],
+                size=size,
+            )
+            return web.Response(
+                body=data,
+                content_type="audio/mpeg",
+                headers={
+                    "Content-Length": str(size),
+                },
+            )
     except Exception:
         logger.exception(
             "audio_download_failed",

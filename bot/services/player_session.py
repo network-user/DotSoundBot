@@ -53,13 +53,37 @@ class PlayerSession:
         )
 
 
+_SWEEP_INTERVAL = 300.0
+
+
 class PlayerSessionManager:
     def __init__(self) -> None:
         self._sessions: dict[int, PlayerSession] = {}
+        self._last_sweep = time.time()
+
+    def _sweep_expired(self) -> None:
+        """Evict expired sessions of *all* users.
+
+        Without this, a session died only when its own user came
+        back — abandoned sessions (with their prefetched track
+        dicts) lived in RAM until restart.
+        """
+        now = time.time()
+        if now - self._last_sweep < _SWEEP_INTERVAL:
+            return
+        self._last_sweep = now
+        expired = [
+            uid
+            for uid, s in self._sessions.items()
+            if s.expired
+        ]
+        for uid in expired:
+            self._sessions.pop(uid, None)
 
     def get(
         self, user_id: int
     ) -> PlayerSession | None:
+        self._sweep_expired()
         session = self._sessions.get(user_id)
         if session and session.expired:
             self._sessions.pop(user_id, None)
@@ -72,6 +96,7 @@ class PlayerSessionManager:
         user_id: int,
         source: str,
     ) -> PlayerSession:
+        self._sweep_expired()
         session = PlayerSession(
             chat_id=chat_id,
             user_id=user_id,

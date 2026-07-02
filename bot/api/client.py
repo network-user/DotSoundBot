@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any
+from typing import Any, BinaryIO
 
 import httpx
 import structlog
@@ -48,17 +48,24 @@ class BackendClient:
 
     async def upload_audio(
         self,
-        file_bytes: bytes,
+        file_bytes: bytes | BinaryIO,
         filename: str,
         content_type: str,
         title: str,
         artist: str | None = None,
         uploader_id: int | None = None,
     ) -> dict[str, Any]:
+        # file-like (BytesIO от aiogram) httpx стримит в multipart
+        # чанками — байтовую копию делать не нужно.
+        size_bytes = (
+            len(file_bytes)
+            if isinstance(file_bytes, bytes | bytearray)
+            else None
+        )
         logger.info(
             "backend_upload_audio",
             filename=filename,
-            size_bytes=len(file_bytes),
+            size_bytes=size_bytes,
             title=title,
         )
         files = {
