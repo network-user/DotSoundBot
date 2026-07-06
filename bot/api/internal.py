@@ -375,7 +375,13 @@ async def handle_admin_alert(
 
     chat_id = str(chat_id_raw).strip()
     allowlist = _allowed_admin_chat_ids()
-    if allowlist and chat_id not in allowlist:
+    if not allowlist:
+        logger.error("admin_alert_allowlist_not_configured")
+        return web.json_response(
+            {"error": "chat_id not allowed"},
+            status=403,
+        )
+    if chat_id not in allowlist:
         logger.warning(
             "admin_alert_chat_not_allowed",
             chat_id=chat_id,

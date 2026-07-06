@@ -4,15 +4,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_VERSION=2.3.2 \
     POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false \
-    PATH="/opt/poetry/bin:$PATH"
+    POETRY_VIRTUALENVS_CREATE=false
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
+# Poetry installed into an isolated venv at POETRY_HOME from a pinned
+# PyPI version - no piping a remote installer script through the shell.
+# POETRY_HOME is Poetry's data dir, so with virtualenvs disabled Poetry
+# still installs project deps into the system site-packages (captured by
+# pip freeze below). /opt/poetry/bin is kept off PATH so python3/pip stay
+# the system interpreter.
+RUN python3 -m venv /opt/poetry && \
+    /opt/poetry/bin/pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 # IMPORTANT: build context must be the parent directory that
 # contains BOTH DotSoundBot and DotSoundPrivateCore. Example:
@@ -25,7 +30,7 @@ WORKDIR /src
 COPY DotSoundPrivateCore /DotSoundPrivateCore
 COPY DotSoundBot/pyproject.toml DotSoundBot/poetry.lock /src/
 
-RUN poetry install --no-interaction --no-ansi --no-root --only main
+RUN /opt/poetry/bin/poetry install --no-interaction --no-ansi --no-root --only main
 
 COPY DotSoundBot/ /src/
 
@@ -33,7 +38,7 @@ COPY DotSoundBot/ /src/
 # freeze would otherwise emit (and pip refuses to reinstall by path in
 # the runtime stage). PrivateCore is reinstalled directly from source
 # in the runtime stage below.
-RUN poetry install --no-interaction --no-ansi --only main && \
+RUN /opt/poetry/bin/poetry install --no-interaction --no-ansi --only main && \
     pip freeze --local --exclude-editable > /tmp/requirements-runtime.txt
 
 

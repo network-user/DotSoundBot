@@ -10,6 +10,7 @@ _CORRELATION_ID_KEYS = frozenset(
     {
         "telegram_id",
         "user_id",
+        "chat_id",
         "owner_id",
         "file_id",
         "client_ip",
@@ -20,6 +21,7 @@ _SENSITIVE_KEYS = frozenset(
     {
         "telegram_id",
         "user_id",
+        "chat_id",
         "owner_id",
         "file_id",
         "token",
@@ -32,6 +34,8 @@ _FULL_REDACT_KEYS = frozenset(
     {
         "token",
         "access_token",
+        "message_text",
+        "inline_query",
     }
 )
 

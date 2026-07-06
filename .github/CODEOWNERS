@@ -1,8 +1,12 @@
-# Replace with your real GitHub username before enabling strict rules.
-* @your-github-username
-
-docs/ai-boundary-policy.md @your-github-username
-docs/private-boundary-inventory.md @your-github-username
-scripts/check_boundary_policy.py @your-github-username
-.github/workflows/policy-guardrails.yml @your-github-username
-
+# No code owners are configured yet.
+#
+# The placeholder `@your-github-username` rules were removed: a non-existent
+# owner does not enforce review and only creates a false impression that the
+# public/private boundary files are gated.
+#
+# To enable CODEOWNERS review gating, add real @handles for these files and
+# turn on branch protection ("Require review from Code Owners"):
+#   docs/ai-boundary-policy.md
+#   docs/private-boundary-inventory.md
+#   scripts/check_boundary_policy.py
+#   .github/workflows/policy-guardrails.yml

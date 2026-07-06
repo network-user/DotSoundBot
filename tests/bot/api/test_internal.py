@@ -733,9 +733,11 @@ async def test_admin_alert_success_with_allowlist(
 
 
 @patch("bot.api.internal.settings")
-async def test_admin_alert_success_no_allowlist(
+async def test_admin_alert_denied_when_no_allowlist(
     mock_settings: MagicMock,
 ) -> None:
+    # Fail-closed: an unset allowlist must deny delivery, not fan
+    # alerts out to any backend-supplied chat_id.
     mock_settings.internal_api_secret = "s"
     mock_settings.admin_alert_chat_id_allowlist = ""
     bot = AsyncMock()
@@ -750,8 +752,8 @@ async def test_admin_alert_success_no_allowlist(
 
     resp = await handle_admin_alert(req)
 
-    assert resp.status == 200
-    bot.send_message.assert_awaited_once()
+    assert resp.status == 403
+    bot.send_message.assert_not_awaited()
 
 
 @patch("bot.api.internal.settings")
@@ -759,7 +761,7 @@ async def test_admin_alert_sent_as_plain_text(
     mock_settings: MagicMock,
 ) -> None:
     mock_settings.internal_api_secret = "s"
-    mock_settings.admin_alert_chat_id_allowlist = ""
+    mock_settings.admin_alert_chat_id_allowlist = "1001"
     bot = AsyncMock()
     bot.send_message = AsyncMock()
     req = _make_request(
@@ -791,7 +793,7 @@ async def test_admin_alert_send_fails(
     mock_settings: MagicMock,
 ) -> None:
     mock_settings.internal_api_secret = "s"
-    mock_settings.admin_alert_chat_id_allowlist = ""
+    mock_settings.admin_alert_chat_id_allowlist = "1001"
     bot = AsyncMock()
     bot.send_message = AsyncMock(side_effect=Exception("api error"))
     req = _make_request(
