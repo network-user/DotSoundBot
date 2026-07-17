@@ -4,11 +4,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_VERSION=2.3.2 \
     POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false
+    POETRY_VIRTUALENVS_CREATE=false \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# No apt/build-essential: bot + PrivateCore main deps ship manylinux
+# wheels (aiogram, aiohttp, pydantic, redis, httpx, ...). Compilers
+# only bloat the builder and OOM/disk-out small deploy hosts that
+# already ran a heavy backend image build in the same deploy.
 
 # Poetry installed into an isolated venv at POETRY_HOME from a pinned
 # PyPI version - no piping a remote installer script through the shell.
@@ -54,7 +57,7 @@ RUN addgroup --system app && adduser --system --ingroup app app && \
     apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 WORKDIR /app
 
